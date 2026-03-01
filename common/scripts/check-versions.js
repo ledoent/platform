@@ -22,16 +22,16 @@ const SCOPE = '@hcengineering'
  */
 function findRepoRoot() {
   let currentDir = __dirname
-  
+
   while (currentDir !== '/') {
-    const rushJsonPath = path.join(currentDir, 'rush.json')
-    if (fs.existsSync(rushJsonPath)) {
+    const workspaceYamlPath = path.join(currentDir, 'pnpm-workspace.yaml')
+    if (fs.existsSync(workspaceYamlPath)) {
       return currentDir
     }
     currentDir = path.dirname(currentDir)
   }
-  
-  throw new Error('Could not find repository root (rush.json not found)')
+
+  throw new Error('Could not find repository root (pnpm-workspace.yaml not found)')
 }
 
 /**
@@ -41,33 +41,33 @@ function findRepoRoot() {
  */
 function parseLockfile() {
   const repoRoot = findRepoRoot()
-  const lockfilePath = path.join(repoRoot, 'common/config/rush/pnpm-lock.yaml')
-  
+  const lockfilePath = path.join(repoRoot, 'pnpm-lock.yaml')
+
   if (!fs.existsSync(lockfilePath)) {
     console.warn('⚠️  pnpm-lock.yaml not found, skipping lockfile validation')
     return {}
   }
-  
+
   const lockfileContent = fs.readFileSync(lockfilePath, 'utf-8')
   const lines = lockfileContent.split('\n')
   const lockfileVersions = {}
-  
+
   // Track current package in the packages section
   let currentPackage = null
   let currentPackageName = null
   let currentPackageVersion = null
   let inPackagesSection = false
   let inDependenciesSection = false
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
-    
+
     // Check if we're in the packages section
     if (line.match(/^packages:/)) {
       inPackagesSection = true
       continue
     }
-    
+
     // Parse @hcengineering package entries like '  @hcengineering/platform@0.7.3:' or '@hcengineering/analytics@0.7.4:'
     if (inPackagesSection && line.match(new RegExp(`^  '?(${SCOPE}/[^@']+)@([^':()]+)(?:\\([^)]*\\))*'?:`))) {
       const packageMatch = line.match(new RegExp(`^  '?(${SCOPE}/[^@']+)@([^':()]+)(?:\\([^)]*\\))*'?:`))
@@ -76,7 +76,7 @@ function parseLockfile() {
         currentPackageVersion = packageMatch[2]
         currentPackage = `${currentPackageName}@${currentPackageVersion}`
         inDependenciesSection = false
-        
+
         // Track this version exists
         if (!lockfileVersions[currentPackageName]) {
           lockfileVersions[currentPackageName] = {}
@@ -87,13 +87,13 @@ function parseLockfile() {
       }
       continue
     }
-    
+
     // Check if we're entering dependencies section
     if (currentPackage && line.trim() === 'dependencies:') {
       inDependenciesSection = true
       continue
     }
-    
+
     // Exit dependencies section
     if (inDependenciesSection && line.match(/^    [a-zA-Z]/)) {
       const nextSectionMatch = line.match(/^    ([a-zA-Z]+):/)
@@ -101,7 +101,7 @@ function parseLockfile() {
         inDependenciesSection = false
       }
     }
-    
+
     // Exit current package when we hit another package definition at the same level
     if (currentPackage && line.match(/^  ['"]?[@a-zA-Z]/)) {
       currentPackage = null
@@ -109,7 +109,7 @@ function parseLockfile() {
       currentPackageVersion = null
       inDependenciesSection = false
     }
-    
+
     // Parse dependency lines like "      '@hcengineering/platform': 0.7.3"
     // This tells us that currentPackageName@currentPackageVersion depends on @hcengineering/platform@0.7.3
     if (inDependenciesSection && currentPackageName && currentPackageVersion) {
@@ -117,7 +117,7 @@ function parseLockfile() {
       if (depMatch) {
         const depPackageName = depMatch[1]
         const depVersion = depMatch[2]
-        
+
         // Record that depPackageName@depVersion is required by currentPackageName@currentPackageVersion
         if (!lockfileVersions[depPackageName]) {
           lockfileVersions[depPackageName] = {}
@@ -129,7 +129,7 @@ function parseLockfile() {
       }
     }
   }
-  
+
   return lockfileVersions
 }
 
@@ -138,34 +138,18 @@ function parseLockfile() {
  * @returns {Array} List of projects with name, version, and path
  */
 function getProjects() {
-  console.log('📦 Loading Rush projects...')
+  console.log('📦 Loading pnpm projects...')
   try {
     const repoRoot = findRepoRoot()
-    const output = execSync('node common/scripts/install-run-rush.js list -p --json', {
+    const output = execSync('pnpm ls -r --depth -1 --json', {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: repoRoot
     })
-    
-    // Parse the JSON output (skip any warnings/logs before the JSON)
-    const lines = output.split('\n')
-    let jsonStart = -1
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim().startsWith('{')) {
-        jsonStart = i
-        break
-      }
-    }
-    
-    if (jsonStart === -1) {
-      throw new Error('Could not find JSON output from rush list')
-    }
-    
-    const jsonOutput = lines.slice(jsonStart).join('\n')
-    const config = JSON.parse(jsonOutput)
-    return config.projects
+
+    return JSON.parse(output)
   } catch (error) {
-    console.error('❌ Error loading Rush projects:', error.message)
+    console.error('❌ Error loading pnpm projects:', error.message)
     process.exit(1)
   }
 }
@@ -196,14 +180,14 @@ function readPackageJson(projectPath) {
  */
 function extractHceDependencies(packageJson, packageName) {
   const dependencies = {}
-  
+
   // Check both dependencies and devDependencies
   const depTypes = ['dependencies', 'devDependencies']
-  
+
   for (const depType of depTypes) {
     const deps = packageJson[depType]
     if (!deps) continue
-    
+
     for (const [depName, version] of Object.entries(deps)) {
       if (depName.startsWith(SCOPE)) {
         dependencies[depName] = {
@@ -214,7 +198,7 @@ function extractHceDependencies(packageJson, packageName) {
       }
     }
   }
-  
+
   return dependencies
 }
 
@@ -225,39 +209,39 @@ function extractHceDependencies(packageJson, packageName) {
  */
 function buildDependencyMap(projects) {
   console.log('🔍 Scanning all packages for @hcengineering dependencies...\n')
-  
+
   const dependencyMap = {}
   let totalPackages = 0
   let totalDependencies = 0
-  
+
   for (const project of projects) {
     const packageJson = readPackageJson(project.path)
     if (!packageJson) continue
-    
+
     totalPackages++
     const dependencies = extractHceDependencies(packageJson, project.name)
-    
+
     for (const [depName, info] of Object.entries(dependencies)) {
       if (!dependencyMap[depName]) {
         dependencyMap[depName] = {}
       }
-      
+
       if (!dependencyMap[depName][info.version]) {
         dependencyMap[depName][info.version] = []
       }
-      
+
       dependencyMap[depName][info.version].push({
         package: project.name,
         type: info.type
       })
-      
+
       totalDependencies++
     }
   }
-  
+
   console.log(`✅ Scanned ${totalPackages} packages`)
   console.log(`✅ Found ${totalDependencies} @hcengineering dependencies\n`)
-  
+
   return dependencyMap
 }
 
@@ -268,10 +252,10 @@ function buildDependencyMap(projects) {
  */
 function findMismatches(dependencyMap) {
   const mismatches = []
-  
+
   for (const [depName, versions] of Object.entries(dependencyMap)) {
     const versionList = Object.keys(versions)
-    
+
     if (versionList.length > 1) {
       mismatches.push({
         dependency: depName,
@@ -279,7 +263,7 @@ function findMismatches(dependencyMap) {
       })
     }
   }
-  
+
   return mismatches
 }
 
@@ -292,34 +276,34 @@ function displayMismatches(mismatches) {
   console.log('❌ VERSION MISMATCHES FOUND')
   console.log('━'.repeat(80))
   console.log()
-  
+
   for (const mismatch of mismatches) {
     console.log(`📦 ${mismatch.dependency}`)
     console.log()
-    
+
     const versionList = Object.keys(mismatch.versions).sort()
-    
+
     for (const version of versionList) {
       const users = mismatch.versions[version]
       console.log(`  Version: ${version}`)
       console.log(`  Used by ${users.length} package(s):`)
-      
+
       // Sort users for consistent output
       users.sort((a, b) => a.package.localeCompare(b.package))
-      
+
       // Show first 10 users, then summarize if more
       const displayUsers = users.slice(0, 10)
       for (const user of displayUsers) {
         console.log(`    - ${user.package} (${user.type})`)
       }
-      
+
       if (users.length > 10) {
         console.log(`    ... and ${users.length - 10} more`)
       }
-      
+
       console.log()
     }
-    
+
     console.log('─'.repeat(80))
     console.log()
   }
@@ -332,7 +316,7 @@ function displayMismatches(mismatches) {
  */
 function findLockfileMismatches(lockfileVersions) {
   const mismatches = []
-  
+
   for (const [packageName, versionMap] of Object.entries(lockfileVersions)) {
     const versions = Object.keys(versionMap)
     if (versions.length > 1) {
@@ -342,7 +326,7 @@ function findLockfileMismatches(lockfileVersions) {
       })
     }
   }
-  
+
   return mismatches
 }
 
@@ -358,21 +342,21 @@ function displayLockfileMismatches(mismatches) {
   console.log('The following @hcengineering packages have multiple resolved versions')
   console.log('in pnpm-lock.yaml (transitive dependencies):')
   console.log()
-  
+
   for (const mismatch of mismatches) {
     console.log(`📦 ${mismatch.package}`)
     console.log()
-    
+
     const versions = Object.keys(mismatch.versionMap).sort()
-    
+
     for (const version of versions) {
       const dependents = Array.from(mismatch.versionMap[version])
       console.log(`  Version ${version}:`)
       console.log(`    Required by ${dependents.length} package(s):`)
-      
+
       // Sort dependents for consistent output
       dependents.sort()
-      
+
       // Show first 10 dependents, then summarize if more
       const displayDependents = dependents.slice(0, 10)
       for (const dependent of displayDependents) {
@@ -380,14 +364,14 @@ function displayLockfileMismatches(mismatches) {
         const cleanPath = dependent.replace(/^\.\.\/\.\.\//, '')
         console.log(`      - ${cleanPath}`)
       }
-      
+
       if (dependents.length > 10) {
         console.log(`      ... and ${dependents.length - 10} more`)
       }
-      
+
       console.log()
     }
-    
+
     console.log('─'.repeat(80))
     console.log()
   }
@@ -398,26 +382,26 @@ function displayLockfileMismatches(mismatches) {
  */
 function main() {
   console.log('🚀 Checking @hcengineering dependency versions...\n')
-  
+
   // Get all projects from rush
   const projects = getProjects()
-  
+
   // Build dependency map from package.json files
   const dependencyMap = buildDependencyMap(projects)
-  
+
   // Find mismatches in package.json files
   const packageJsonMismatches = findMismatches(dependencyMap)
-  
+
   // Parse lockfile and find mismatches there
   console.log('🔒 Checking pnpm-lock.yaml for resolved version mismatches...\n')
   const lockfileVersions = parseLockfile()
   const lockfileMismatches = findLockfileMismatches(lockfileVersions)
-  
+
   console.log(`✅ Found ${Object.keys(lockfileVersions).length} unique @hcengineering packages in lockfile`)
   console.log(`${lockfileMismatches.length > 0 ? '❌' : '✅'} Found ${lockfileMismatches.length} packages with multiple resolved versions\n`)
-  
+
   const hasErrors = packageJsonMismatches.length > 0 || lockfileMismatches.length > 0
-  
+
   if (!hasErrors) {
     console.log('━'.repeat(80))
     console.log('✅ SUCCESS - All @hcengineering dependencies use consistent versions!')
@@ -433,17 +417,17 @@ function main() {
       console.log(`❌ PACKAGE.JSON ISSUES: Found ${packageJsonMismatches.length} dependencies with mismatched versions`)
       console.log()
     }
-    
+
     if (lockfileMismatches.length > 0) {
       displayLockfileMismatches(lockfileMismatches)
       console.log(`❌ LOCKFILE ISSUES: Found ${lockfileMismatches.length} packages with multiple resolved versions`)
       console.log()
     }
-    
+
     console.log('To fix these issues:')
     console.log('  1. Update package.json files to use consistent versions')
-    console.log('  2. Run: rush update')
-    console.log('  3. Run: rush rebuild')
+    console.log('  2. Run: pnpm install')
+    console.log('  3. Run: pnpm run build')
     console.log('  4. Run this script again to verify')
     console.log()
     process.exit(1)
@@ -455,10 +439,10 @@ if (require.main === module) {
   main()
 }
 
-module.exports = { 
-  getProjects, 
-  buildDependencyMap, 
-  findMismatches, 
-  parseLockfile, 
-  findLockfileMismatches 
+module.exports = {
+  getProjects,
+  buildDependencyMap,
+  findMismatches,
+  parseLockfile,
+  findLockfileMismatches
 }

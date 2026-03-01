@@ -13,9 +13,9 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "compile",
-    "_phase:bundle": "rushx bundle",
-    "_phase:docker-build": "rushx docker:build",
-    "_phase:docker-staging": "rushx docker:staging",
+    "_phase:bundle": "pnpm run bundle",
+    "_phase:docker-build": "pnpm run docker:build",
+    "_phase:docker-staging": "pnpm run docker:staging",
     "docker:build": "../../common/scripts/docker_build.sh hardcoreeng/rekoni-service",
     "docker:tbuild": "docker build -t hardcoreeng/rekoni-service . --platform=linux/amd64 && ../../common/scripts/docker_tag_push.sh hardcoreeng/rekoni-service",
     "docker:abuild": "docker build -t hardcoreeng/rekoni-service . --platform=linux/arm64 && ../../common/scripts/docker_tag_push.sh hardcoreeng/rekoni-service",

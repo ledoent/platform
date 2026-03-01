@@ -8,7 +8,7 @@ const pathes = {}
 const jsons = {}
 const repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim()
 
-function fillPackages (config) {
+function fillPackages(config) {
   for (const project of config.projects) {
     const packageName = project.name ?? project.packageName
     if (typeof packageName !== 'string' || !packageName.startsWith(repo)) continue
@@ -33,7 +33,7 @@ function fillPackages (config) {
   }
 }
 
-function bumpPackage (name, newVersion) {
+function bumpPackage(name, newVersion) {
   const json = jsons[name]
 
   if (json === undefined) return
@@ -51,12 +51,12 @@ function bumpPackage (name, newVersion) {
   }
 }
 
-function shouldPublish (name) {
+function shouldPublish(name) {
   const json = jsons[name]
   return json !== undefined && json.repository !== undefined
 }
 
-function publish (name) {
+function publish(name) {
   const package = packages[name]
   try {
     console.log('publishing', name)
@@ -66,7 +66,7 @@ function publish (name) {
   }
 }
 
-function fix (name) {
+function fix(name) {
   const package = packages[name]
   try {
     console.log('fixing', name)
@@ -76,7 +76,7 @@ function fix (name) {
   }
 }
 
-function main () {
+function main() {
   const argv = process.argv.slice(2)
 
   const doFix = argv.includes('--fix')
@@ -97,22 +97,12 @@ function main () {
 
   console.log(doCheck ? 'check versions ...' : 'bump version ...', version)
 
-  const output = execSync('node common/scripts/install-run-rush.js list -p --json', { encoding: 'utf-8', cwd: repoRoot })
-  const lines = output.split('\n')
-  let jsonStart = -1
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim().startsWith('{')) {
-      jsonStart = i
-      break
-    }
-  }
-  if (jsonStart === -1) {
-    console.error('Could not find JSON output from rush list')
-    process.exit(1)
-  }
-  const config = JSON.parse(lines.slice(jsonStart).join('\n'))
+  console.log(doCheck ? 'check versions ...' : 'bump version ...', version)
 
-  fillPackages(config)
+  const output = execSync('pnpm ls -r --depth -1 --json', { encoding: 'utf-8', cwd: repoRoot })
+  const config = JSON.parse(output)
+
+  fillPackages({ projects: config })
 
   const packageNames = Object.keys(packages)
 
@@ -163,4 +153,4 @@ function main () {
   console.log('... done')
 }
 
-main ()
+main()

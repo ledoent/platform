@@ -5,7 +5,7 @@ branch=${BASE_BRANCH:-develop}
 FILES=$(git diff origin/$branch --name-only --diff-filter=ACMR | sed 's| |\\ |g')
 [ -z "$FILES" ] && exit 0
 
-roots=$(rush list -p --json | grep "path" | cut -f 2 -d ':' | cut -f 2 -d '"')
+roots=$(pnpm ls -r --depth -1 --json | grep '"path":' | cut -d '"' -f 4 | sed "s|^$(pwd)/||")
 
 declare -a changed_roots
 

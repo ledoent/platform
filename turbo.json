@@ -31,6 +31,9 @@
     "lint": {
       "dependsOn": ["build"]
     },
+    "docker:build": {
+      "dependsOn": ["build", "package", "bundle"]
+    },
     "format": {
       "cache": false
     }

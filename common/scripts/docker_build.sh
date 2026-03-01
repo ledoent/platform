@@ -25,10 +25,6 @@ if [ "$cleanup" = true ]; then
     rm -rf dist
   fi
 
-  if [ -d ".rush" ]; then
-    echo "  Removing .rush/"
-    rm -rf .rush
-  fi
 
   echo "  Size after cleanup: $(du -sh . 2>/dev/null | cut -f1)"
 fi

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-roots=$(rush list -p --json | grep "path" | cut -f 2 -d ':' | cut -f 2 -d '"')
+roots=$(pnpm ls -r --depth -1 --json | grep '"path":' | cut -d '"' -f 4 | sed "s|^$(pwd)/||")
 files="eslint.log prettier.log"
 for file in $roots; do
   for check in $files; do

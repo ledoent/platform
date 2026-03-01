@@ -12,51 +12,51 @@ done
 
 if [ "$MINIFIED" = true ]; then
   echo "Building minified docker images (excluding optional services)..."
-  rush docker:build -p 20 \
-    --to @hcengineering/pod-server \
-    --to @hcengineering/pod-front \
-    --to @hcengineering/prod \
-    --to @hcengineering/pod-account \
-    --to @hcengineering/pod-workspace \
-    --to @hcengineering/pod-collaborator \
-    --to @hcengineering/tool \
-    --to @hcengineering/pod-analytics-collector \
-    --to @hcengineering/rekoni-service \
-    --to @hcengineering/pod-datalake \
-    --to @hcengineering/pod-export \
-    --to @hcengineering/pod-media \
-    --to @hcengineering/pod-external
+  npx turbo run docker:build \
+    --filter=@hcengineering/pod-server \
+    --filter=@hcengineering/pod-front \
+    --filter=@hcengineering/prod \
+    --filter=@hcengineering/pod-account \
+    --filter=@hcengineering/pod-workspace \
+    --filter=@hcengineering/pod-collaborator \
+    --filter=@hcengineering/tool \
+    --filter=@hcengineering/pod-analytics-collector \
+    --filter=@hcengineering/rekoni-service \
+    --filter=@hcengineering/pod-datalake \
+    --filter=@hcengineering/pod-export \
+    --filter=@hcengineering/pod-media \
+    --filter=@hcengineering/pod-external
 else
-  rush docker:build -p 20 \
-    --to @hcengineering/pod-server \
-    --to @hcengineering/pod-front \
-    --to @hcengineering/prod \
-    --to @hcengineering/pod-account \
-    --to @hcengineering/pod-workspace \
-    --to @hcengineering/pod-collaborator \
-    --to @hcengineering/tool \
-    --to @hcengineering/pod-print \
-    --to @hcengineering/pod-sign \
-    --to @hcengineering/pod-analytics-collector \
-    --to @hcengineering/rekoni-service \
-    --to @hcengineering/pod-ai-bot \
-    --to @hcengineering/import-tool \
-    --to @hcengineering/pod-stats \
-    --to @hcengineering/pod-fulltext \
-    --to @hcengineering/pod-love \
-    --to @hcengineering/pod-mail \
-    --to @hcengineering/pod-datalake \
-    --to @hcengineering/pod-mail-worker \
-    --to @hcengineering/pod-export \
-    --to @hcengineering/pod-media \
-    --to @hcengineering/pod-preview \
-    --to @hcengineering/pod-link-preview \
-    --to @hcengineering/pod-external \
-    --to @hcengineering/pod-backup \
-    --to @hcengineering/backup-api-pod \
-    --to @hcengineering/pod-billing \
-    --to @hcengineering/pod-process \
-    --to @hcengineering/pod-rating \
-    --to @hcengineering/pod-payment \
-    --to @hcengineering/pod-worker
+  npx turbo run docker:build \
+    --filter=@hcengineering/pod-server \
+    --filter=@hcengineering/pod-front \
+    --filter=@hcengineering/prod \
+    --filter=@hcengineering/pod-account \
+    --filter=@hcengineering/pod-workspace \
+    --filter=@hcengineering/pod-collaborator \
+    --filter=@hcengineering/tool \
+    --filter=@hcengineering/pod-print \
+    --filter=@hcengineering/pod-sign \
+    --filter=@hcengineering/pod-analytics-collector \
+    --filter=@hcengineering/rekoni-service \
+    --filter=@hcengineering/pod-ai-bot \
+    --filter=@hcengineering/import-tool \
+    --filter=@hcengineering/pod-stats \
+    --filter=@hcengineering/pod-fulltext \
+    --filter=@hcengineering/pod-love \
+    --filter=@hcengineering/pod-mail \
+    --filter=@hcengineering/pod-datalake \
+    --filter=@hcengineering/pod-mail-worker \
+    --filter=@hcengineering/pod-export \
+    --filter=@hcengineering/pod-media \
+    --filter=@hcengineering/pod-preview \
+    --filter=@hcengineering/pod-link-preview \
+    --filter=@hcengineering/pod-external \
+    --filter=@hcengineering/pod-backup \
+    --filter=@hcengineering/backup-api-pod \
+    --filter=@hcengineering/pod-billing \
+    --filter=@hcengineering/pod-process \
+    --filter=@hcengineering/pod-rating \
+    --filter=@hcengineering/pod-payment \
+    --filter=@hcengineering/pod-worker
 fi

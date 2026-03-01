@@ -9,12 +9,12 @@
     "format": "turbo run format",
     "lint": "turbo run lint",
     "install-all": "pnpm install",
-    "check": "rush check",
-    "model-version": "rush model-version",
+    "check": "node common/scripts/check-versions.js",
+    "model-version": "node common/scripts/show_version.js",
     "bundle": "turbo run bundle",
-    "docker:build": "rush docker",
-    "docker:up": "rush docker:up",
-    "docker:push": "rush docker:push"
+    "docker:build": "./common/scripts/docker.sh",
+    "docker:up": "cd ./dev && docker compose up -d --force-recreate",
+    "docker:push": "turbo run docker:push"
   },
   "devDependencies": {
     "turbo": "^2.0.0"

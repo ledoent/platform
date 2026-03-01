@@ -5,7 +5,7 @@
   "author": "Hardcore Engineering <hey@huly.io>",
   "template": "@hcengineering/default-package",
   "scripts": {
-    "_phase:package": "rushx package",
+    "_phase:package": "pnpm run package",
     "package": "rm -rf ./dist && cp -r ../desktop/dist . && cp ../desktop/.env ./dist && cp src/AppIcon.png ./dist/ui/public && cp src/AppIcon.ico ./dist/ui/public && echo 'done'",
     "dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false NODE_ENV=production VERSION=$(node ../common/scripts/show_tag.js) MODEL_VERSION=$(node ../common/scripts/show_version.js) electron-builder build -p onTag",
     "dist-local": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false NODE_ENV=production VERSION=$(node ../common/scripts/show_tag.js) MODEL_VERSION=$(node ../common/scripts/show_version.js) electron-builder build",
