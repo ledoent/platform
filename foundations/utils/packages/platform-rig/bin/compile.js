@@ -123,10 +123,7 @@ function collectFileStats(source, result) {
 }
 
 switch (args[0]) {
-  case 'ui': {
-    console.log('Nothing to compile to UI')
-    break
-  }
+  case 'ui':
   case 'ui-esbuild': {
     console.log('Building UI package with Svelte support...')
     let st = performance.now()
@@ -138,6 +135,7 @@ switch (args[0]) {
 
     performESBuildWithSvelte(filesToTranspile)
       .then(() => generateSvelteTypes())
+      .then(() => validateTSC(st))
       .then(() => {
         console.log('UI build time: ', Math.round((performance.now() - st) * 100) / 100)
         collectFileStats('lib', after)
