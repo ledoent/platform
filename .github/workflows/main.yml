@@ -1,14 +1,10 @@
 # This is a basic workflow to help you get started with Actions
-
 name: CI
-
 permissions:
   contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 # Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
@@ -19,7 +15,6 @@ on:
       - s*
   pull_request:
     branches: [develop, staging, staging-new, main]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
@@ -32,7 +27,6 @@ on:
         required: false
         default: false
         type: boolean
-
 env:
   CacheFolders: |
     communication
@@ -53,7 +47,6 @@ env:
     workers
     tests
     qms-tests
-    
     .prettierrc
     tools
     workers
@@ -61,7 +54,6 @@ env:
     .turbo
   PublishTempFolder: publish_artifacts
   INIT_SCRIPTS_BRANCH: 'main'
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -76,28 +68,20 @@ jobs:
           filter: tree:0
           submodules: recursive
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Installing...
         run: pnpm install
-
       # - name: Cheking model is updated...
       #   run: node common/scripts/check_model_version.js
-
       - name: Checking for mis-matching dependencies...
         run: pnpm run check
-
       - name: Checking for mis-matching transitive dependencies...
         run: node common/scripts/check-versions.js
-
       - name: Model version from git tags
         run: pnpm run model-version
-
       - name: Verify package versions match tag
         if: startsWith(github.event.inputs.ref || github.ref, 'refs/tags/v')
         run: |
@@ -105,16 +89,12 @@ jobs:
           VERSION="${REF#refs/tags/v}"
           VERSION="${VERSION#v}"
           node common/scripts/bump.js --check "$VERSION"
-
       - name: Building...
         run: pnpm run build
-
       - name: Bundle...
         run: turbo run bundle
-
       - name: Validate...
         run: pnpm run validate
-
       - name: Cache build results
         uses: actions/cache@v5
         env:
@@ -133,15 +113,11 @@ jobs:
           fetch-depth: 0
           filter: tree:0
           submodules: recursive
-
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Cache build results
         uses: actions/cache@v5
         env:
@@ -150,7 +126,6 @@ jobs:
           path: ${{ env.CacheFolders}}
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
           restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
-
       - name: Checking svelte sources...
         run: turbo run svelte-check
   formatting:
@@ -163,8 +138,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
@@ -177,7 +150,6 @@ jobs:
           path: ${{ env.CacheFolders}}
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
           restore-keys: ${{ runner.os }}-build-${{ env.cache-name }}-${{ github.sha }}
-
       - name: Formatting...
         run: pnpm run format -- --branch ${{ github.base_ref || 'develop' }}
       - name: Check files formatting
@@ -199,8 +171,6 @@ jobs:
           filter: tree:0
           submodules: recursive
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
@@ -220,7 +190,6 @@ jobs:
         with:
           username: hardcoreeng
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
-
       - name: Prepare server
         run: |
           cd ./tests
@@ -241,22 +210,16 @@ jobs:
           filter: tree:0
           submodules: recursive
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Checking for mis-matching dependencies...
         run: pnpm run check
-
       - name: Checking for mis-matching transitive dependencies...
         run: node common/scripts/check-versions.js
-
       - name: Installing...
         run: pnpm install
-
       - name: Login to Docker Hub
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         continue-on-error: true
@@ -320,14 +283,12 @@ jobs:
       #   uses: actions/checkout@v6
       #   if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
       #   continue-on-error: true
-      #   with:
       #     ref: gh-pages
       #     path: gh-pages
       # - name: Generates Allure Report
       #   uses: simple-elf/allure-report-action@master
       #   if: always()
       #   id: allure-report
-      #   with:
       #     allure_results: ./tests/sanity/allure-results/
       #     gh_pages: gh-pages
       #     allure_report: allure-report
@@ -335,13 +296,11 @@ jobs:
       # - name: Upload allure test results
       #   if: always()
       #   uses: actions/upload-artifact@v6
-      #   with:
       #     name: allure-report
       #     path: ./allure-report/
       # - name: Deploy report to Github Pages
       #   if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
       #   uses: peaceiris/actions-gh-pages@v4
-      #   with:
       #     PERSONAL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       #     PUBLISH_BRANCH: gh-pages
       #     PUBLISH_DIR: allure-history
@@ -354,7 +313,6 @@ jobs:
       # - name: Upload DB snapshot
       #   if: always()
       #   uses: actions/upload-artifact@v3
-      #   with:
       #     name: db-snapshot
       #     path: ./tests/db_dump
   uitest-pg:
@@ -367,22 +325,16 @@ jobs:
           filter: tree:0
           submodules: recursive
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Checking for mis-matching dependencies...
         run: pnpm run check
-
       - name: Checking for mis-matching transitive dependencies...
         run: node common/scripts/check-versions.js
-
       - name: Installing...
         run: pnpm install
-
       - name: Login to Docker Hub
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         continue-on-error: true
@@ -458,22 +410,16 @@ jobs:
           filter: tree:0
           submodules: recursive
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Checking for mis-matching dependencies...
         run: pnpm run check
-
       - name: Checking for mis-matching transitive dependencies...
         run: node common/scripts/check-versions.js
-
       - name: Installing...
         run: pnpm install
-
       - name: Login to Docker Hub
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         continue-on-error: true
@@ -533,25 +479,18 @@ jobs:
           filter: tree:0
           submodules: recursive
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Checking for mis-matching dependencies...
         run: pnpm run check
-
       - name: Checking for mis-matching transitive dependencies...
         run: node common/scripts/check-versions.js
-
       - name: Installing...
         run: pnpm install
-
       - name: Build sanity-tests suite
         run: pnpm run build -t @hcengineering/tests-sanity
-
       - name: Login to Docker Hub
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         continue-on-error: true
@@ -636,31 +575,22 @@ jobs:
                 "containerd-snapshotter": true
               }
             }
-
       - name: Checkout init repository
         run: |
           wget https://github.com/hcengineering/init/archive/refs/heads/${{env.INIT_SCRIPTS_BRANCH}}.zip
           unzip ${{env.INIT_SCRIPTS_BRANCH}}.zip -d pods/workspace
           mv pods/workspace/init-${{env.INIT_SCRIPTS_BRANCH}} pods/workspace/init
           rm -rf ${{env.INIT_SCRIPTS_BRANCH}}.zip
-
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
-
       - name: Installing...
         run: pnpm install
-
       - name: Model version from git tags
         run: pnpm run model-version
-
       - name: Login to Docker Hub
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         continue-on-error: true
@@ -668,7 +598,6 @@ jobs:
         with:
           username: hardcoreeng
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
-
       - name: Docker build
         run: |
           npm run docker:build:build -v
@@ -707,7 +636,6 @@ jobs:
           echo Pushing love-agent release of tag ${{ github.ref }}
           cd ./services/ai-bot/love-agent
           pnpm docker:push
-
   dist-build:
     # if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/s') }}
     if: ${{ startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/s') }}
@@ -720,15 +648,11 @@ jobs:
           fetch-depth: 0
           filter: tree:0
           submodules: recursive
-
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Installing...
         run: pnpm install --purge
       - name: Model version from git tags
@@ -749,15 +673,12 @@ jobs:
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-
           # import certificate from secret
           echo -n "$DEV_ID_P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
-
           # create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
           # import certificate to keychain
           security import $CERTIFICATE_PATH -P "$DEV_ID_P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
@@ -803,7 +724,6 @@ jobs:
         with:
           name: Huly-Linux
           path: ./desktop-package/deploy/Huly-linux-*.zip
-
   qms-dist-build:
     # if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/s') }}
     if: ${{ startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/s') }}
@@ -816,15 +736,11 @@ jobs:
           fetch-depth: 0
           filter: tree:0
           submodules: recursive
-
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
-
       - name: Installing...
         run: pnpm install --purge
       - name: Model version from git tags
@@ -845,15 +761,12 @@ jobs:
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-
           # import certificate from secret
           echo -n "$DEV_ID_P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
-
           # create temporary keychain
           security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
           # import certificate to keychain
           security import $CERTIFICATE_PATH -P "$DEV_ID_P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
@@ -899,7 +812,6 @@ jobs:
         with:
           name: TraceX-Linux
           path: ./qms-desktop-package/deploy/TraceX-linux-*.zip
-
   publish-npm:
     if: startsWith(github.event.inputs.ref || github.ref, 'refs/tags/v') && (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_publish != 'true')
     needs: build
@@ -911,8 +823,6 @@ jobs:
           ref: ${{ github.event.inputs.ref || github.ref }}
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
-        with:
-          version: latest
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
