@@ -71,6 +71,9 @@ jspm_packages/
 # OS X temporary files
 .DS_Store
 
+# Turborepo
+.turbo
+
 # Rush temporary files
 common/deploy/
 common/temp/

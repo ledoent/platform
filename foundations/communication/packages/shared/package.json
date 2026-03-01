@@ -11,7 +11,7 @@
     "tsconfig.json"
   ],
   "scripts": {
-    "build": "../scripts/compile.js",
+    "build": "compile",
     "_phase:build": "compile transpile src",
     "_phase:validate": "compile validate",
     "lint": "eslint \"src/**/*.ts\"",

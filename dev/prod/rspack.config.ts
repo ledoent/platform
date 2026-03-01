@@ -56,6 +56,10 @@ const proxies: Record<string, any> = {
 };
 
 export default defineConfig({
+  cache: {
+    type: 'filesystem',
+    buildDependencies: [__filename],
+  } as any,
   mode: prod ? 'production' : 'development',
   context: __dirname,
   entry: {

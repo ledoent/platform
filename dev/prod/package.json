@@ -9,6 +9,7 @@
     "package": "rm -rf ./dist && cross-env NODE_ENV=production rspack build --config rspack.config.ts && echo 'done'",
     "analyze": "rm -rf ./dist && cross-env NODE_ENV=production rspack build --config rspack.config.ts --profile --json > stats.json",
     "show": "webpack-bundle-analyzer stats.json dist",
+    "dev": "npm run dev-server",
     "dev-server": "cross-env USE_CACHE=false CLIENT_TYPE=dev-server rspack serve --config rspack.config.ts",
     "dev-server-test": "cross-env USE_CACHE=false CLIENT_TYPE=dev-server-test rspack serve --config rspack.config.ts",
     "dev-worker": "cross-env USE_CACHE=false CLIENT_TYPE=dev-worker rspack serve --config rspack.config.ts",

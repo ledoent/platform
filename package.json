@@ -1,0 +1,19 @@
+{
+  "name": "anticrm",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "validate": "turbo run validate",
+    "format": "turbo run format",
+    "lint": "turbo run lint",
+    "install-all": "pnpm install",
+    "docker:build": "rush docker",
+    "docker:up": "rush docker:up"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "packageManager": "pnpm@10.15.1"
+}

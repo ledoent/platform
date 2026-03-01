@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "lib/**", ".next/**", "!.next/cache/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "inputs": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+    },
+    "dev": {
+      "persistent": true,
+      "cache": false
+    },
+    "package": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "validate": {
+      "dependsOn": ["build"],
+      "outputs": [".validate/**"]
+    },
+    "bundle": {
+      "dependsOn": ["build"],
+      "outputs": ["dist/**"]
+    },
+    "svelte-check": {
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "dependsOn": ["build"]
+    },
+    "format": {
+      "cache": false
+    }
+  }
+}
