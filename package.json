@@ -9,8 +9,12 @@
     "format": "turbo run format",
     "lint": "turbo run lint",
     "install-all": "pnpm install",
+    "check": "rush check",
+    "model-version": "rush model-version",
+    "bundle": "turbo run bundle",
     "docker:build": "rush docker",
-    "docker:up": "rush docker:up"
+    "docker:up": "rush docker:up",
+    "docker:push": "rush docker:push"
   },
   "devDependencies": {
     "turbo": "^2.0.0"
