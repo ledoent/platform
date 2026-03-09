@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: huly
+resources:
+  - ../../base
+images:
+  - name: hardcoreeng/front
+    newTag: v0.7.382
+  - name: hardcoreeng/account
+    newTag: v0.7.382
+  - name: hardcoreeng/transactor
+    newTag: v0.7.382
+  - name: hardcoreeng/collaborator
+    newTag: v0.7.382
+  - name: hardcoreeng/workspace
+    newTag: v0.7.382
+  - name: hardcoreeng/fulltext
+    newTag: v0.7.382
+  - name: hardcoreeng/rekoni-service
+    newTag: v0.7.382
+  - name: hardcoreeng/stats
+    newTag: v0.7.382

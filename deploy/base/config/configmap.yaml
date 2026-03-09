@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: huly-config
+data:
+  # URLs — overridden per overlay
+  ACCOUNTS_URL: "https://huly.hz.ledoweb.com/_accounts"
+  COLLABORATOR_URL: "wss://huly.hz.ledoweb.com/_collaborator"
+  FRONT_URL: "https://huly.hz.ledoweb.com"
+  REKONI_URL: "https://huly.hz.ledoweb.com/_rekoni"
+  STATS_URL: "https://huly.hz.ledoweb.com/_stats"
+  TRANSACTOR_URL: "ws://transactor:3333;wss://huly.hz.ledoweb.com/_transactor"
+  # Internal URLs
+  ELASTIC_URL: "http://opensearch:9200"
+  ELASTIC_INDEX_NAME: "huly_storage_index"
+  FULLTEXT_URL: "http://fulltext:4700"
+  ACCOUNTS_URL_INTERNAL: "http://account:3000"
+  REKONI_URL_INTERNAL: "http://rekoni:4004"
+  STATS_URL_INTERNAL: "http://stats:4900"
+  QUEUE_CONFIG: "redpanda:9092"
+  # App settings
+  MODEL_ENABLED: "*"
+  LAST_NAME_FIRST: "true"
+  TITLE: "Huly Self Host"
+  DEFAULT_LANGUAGE: "en"
+  UPLOAD_URL: "/files"
+  ADMIN_EMAILS: "dkendall@ledoweb.com"
+  # Optional integration URLs (required by front even if unused)
+  GMAIL_URL: "https://huly.hz.ledoweb.com/_gmail"
+  TELEGRAM_URL: "https://huly.hz.ledoweb.com/_telegram"
+  CALENDAR_URL: "https://huly.hz.ledoweb.com/_calendar"
+  LOVE_ENDPOINT: "https://huly.hz.ledoweb.com/_love"
