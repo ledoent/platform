@@ -87,6 +87,28 @@ describe('checkHasPassword', () => {
     expect(result.result).toBe(false)
   })
 
+  test('returns false for partial state (hash set but salt null)', async () => {
+    ;(mockDb.account.findOne as jest.Mock).mockResolvedValue({
+      uuid: accountUuid,
+      hash: Buffer.from('hash'),
+      salt: null
+    })
+
+    const result = await checkHasPassword(mockCtx, mockDb, null, { id: 1, params: {} }, 'token')
+    expect(result.result).toBe(false)
+  })
+
+  test('returns false for partial state (salt set but hash null)', async () => {
+    ;(mockDb.account.findOne as jest.Mock).mockResolvedValue({
+      uuid: accountUuid,
+      hash: null,
+      salt: Buffer.from('salt')
+    })
+
+    const result = await checkHasPassword(mockCtx, mockDb, null, { id: 1, params: {} }, 'token')
+    expect(result.result).toBe(false)
+  })
+
   test('throws AccountNotFound for missing account', async () => {
     ;(mockDb.account.findOne as jest.Mock).mockResolvedValue(null)
 

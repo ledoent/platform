@@ -1325,7 +1325,7 @@ export async function checkHasPassword (
   if (account == null) {
     throw new PlatformError(new Status(Severity.ERROR, platform.status.AccountNotFound, { account: accountUuid }))
   }
-  return account.hash != null
+  return account.hash != null && account.salt != null
 }
 
 export async function changePassword (
@@ -1354,7 +1354,7 @@ export async function changePassword (
     throw new PlatformError(new Status(Severity.ERROR, platform.status.AccountNotFound, { account: accountUuid }))
   }
 
-  if (account.hash != null) {
+  if (account.hash != null && account.salt != null) {
     // Account has an existing password — require old password verification
     if (oldPassword == null || oldPassword === '') {
       throw new PlatformError(new Status(Severity.ERROR, platform.status.BadRequest, {}))
