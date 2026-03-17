@@ -721,7 +721,12 @@ export async function signUpJoin (
 }
 
 export async function checkHasPassword (): Promise<boolean> {
-  return await getAccountClient().checkHasPassword()
+  try {
+    return await getAccountClient().checkHasPassword()
+  } catch (err: any) {
+    Analytics.handleError(err)
+    throw err
+  }
 }
 
 export async function changePassword (oldPassword: string, password: string): Promise<void> {

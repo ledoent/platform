@@ -32,9 +32,10 @@
   let hasPassword: boolean | undefined = undefined
   let checking = true
 
-  $: disabled = hasPassword
-    ? password.length === 0 || oldPassword.length === 0 || oldPassword === password || password !== password2 || saved
-    : password.length === 0 || password !== password2 || saved
+  $: disabled = checking ||
+    (hasPassword
+      ? password.length === 0 || oldPassword.length === 0 || oldPassword === password || password !== password2 || saved
+      : password.length === 0 || password !== password2 || saved)
 
   async function checkPassword (): Promise<void> {
     try {
@@ -53,6 +54,7 @@
     try {
       const changePassword = await getResource(login.function.ChangePassword)
       await changePassword(hasPassword ? oldPassword : '', password)
+      hasPassword = true
       label = setting.string.Saved
     } catch (e: any) {
       Analytics.handleError(e)
