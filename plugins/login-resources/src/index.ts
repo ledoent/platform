@@ -20,6 +20,7 @@ import LoginApp from './components/LoginApp.svelte'
 import LoginOtpForm from './components/LoginOtpForm.svelte'
 import {
   changePassword,
+  checkHasPassword,
   fetchWorkspace,
   getInviteLink,
   getPerson,
@@ -49,6 +50,7 @@ export default async () => ({
   },
   function: {
     LeaveWorkspace: leaveWorkspace,
+    CheckHasPassword: checkHasPassword,
     ChangePassword: changePassword,
     SelectWorkspace: selectWorkspace,
     ExchangeGuestToken: exchangeGuestToken,

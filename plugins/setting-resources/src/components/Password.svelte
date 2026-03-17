@@ -18,9 +18,10 @@
   import { getResource } from '@hcengineering/platform'
   import presentation from '@hcengineering/presentation'
   import setting from '@hcengineering/setting'
-  import { Breadcrumb, Button, EditBox, Header, Icon, Label } from '@hcengineering/ui'
+  import { Breadcrumb, Button, EditBox, Header, Icon, Label, Loading } from '@hcengineering/ui'
   import plugin from '../plugin'
   import Error from './icons/Error.svelte'
+  import { onMount } from 'svelte'
 
   let oldPassword: string = ''
   let password: string = ''
@@ -28,16 +29,30 @@
   let label = presentation.string.Save
   let saved = false
   let error = false
+  let hasPassword: boolean | undefined = undefined
+  let checking = true
 
-  $: disabled =
-    password.length === 0 || oldPassword.length === 0 || oldPassword === password || password !== password2 || saved
+  $: disabled = hasPassword
+    ? password.length === 0 || oldPassword.length === 0 || oldPassword === password || password !== password2 || saved
+    : password.length === 0 || password !== password2 || saved
+
+  async function checkPassword (): Promise<void> {
+    try {
+      const check = await getResource(login.function.CheckHasPassword)
+      hasPassword = await check()
+    } catch {
+      hasPassword = true // default to change-password form on error
+    } finally {
+      checking = false
+    }
+  }
 
   async function save (): Promise<void> {
     label = setting.string.Saving
     saved = true
     try {
       const changePassword = await getResource(login.function.ChangePassword)
-      await changePassword(oldPassword, password)
+      await changePassword(hasPassword ? oldPassword : '', password)
       label = setting.string.Saved
     } catch (e: any) {
       Analytics.handleError(e)
@@ -53,57 +68,85 @@
     error = false
   }
   $: updateSaved(oldPassword, password, password2)
+
+  onMount(() => {
+    void checkPassword()
+  })
 </script>
 
 <div class="hulyComponent">
   <Header adaptive={'disabled'}>
-    <Breadcrumb icon={setting.icon.Password} label={login.string.ChangePassword} size={'large'} isCurrent />
+    <Breadcrumb
+      icon={setting.icon.Password}
+      label={hasPassword === false ? login.string.SetPassword : login.string.ChangePassword}
+      size={'large'}
+      isCurrent
+    />
   </Header>
   <div class="flex-row-stretch flex-grow p-10">
     <div class="flex-grow flex-col">
-      {#if error}
-        <div class="flex-row-center gap-2">
-          <Icon icon={Error} size={'medium'} />
-          <Label label={plugin.string.FailedToSave} />
+      {#if checking}
+        <Loading />
+      {:else}
+        {#if error}
+          <div class="flex-row-center gap-2">
+            <Icon icon={Error} size={'medium'} />
+            <Label label={plugin.string.FailedToSave} />
+          </div>
+        {/if}
+        {#if hasPassword === false}
+          <div class="mb-4 sso-hint">
+            <Label label={login.string.SSOPasswordDescription} />
+          </div>
+        {/if}
+        <div class="flex-grow flex-col">
+          {#if hasPassword}
+            <div>
+              <EditBox
+                format="password"
+                placeholder={login.string.EnterCurrentPassword}
+                label={login.string.CurrentPassword}
+                bind:value={oldPassword}
+              />
+            </div>
+          {/if}
+          <div class={hasPassword ? 'mt-6' : ''}>
+            <EditBox
+              format="password"
+              placeholder={login.string.EnterNewPassword}
+              label={login.string.NewPassword}
+              bind:value={password}
+            />
+          </div>
+          <div class="mt-6">
+            <EditBox
+              format="password"
+              placeholder={login.string.RepeatNewPassword}
+              label={login.string.NewPassword}
+              bind:value={password2}
+            />
+          </div>
+        </div>
+
+        <div class="flex-row-reverse">
+          <Button
+            {label}
+            {disabled}
+            kind={'primary'}
+            on:click={() => {
+              void save()
+            }}
+          />
         </div>
       {/if}
-      <div class="flex-grow flex-col">
-        <div>
-          <EditBox
-            format="password"
-            placeholder={login.string.EnterCurrentPassword}
-            label={login.string.CurrentPassword}
-            bind:value={oldPassword}
-          />
-        </div>
-        <div class="mt-6">
-          <EditBox
-            format="password"
-            placeholder={login.string.EnterNewPassword}
-            label={login.string.NewPassword}
-            bind:value={password}
-          />
-        </div>
-        <div class="mt-6">
-          <EditBox
-            format="password"
-            placeholder={login.string.RepeatNewPassword}
-            label={login.string.NewPassword}
-            bind:value={password2}
-          />
-        </div>
-      </div>
-
-      <div class="flex-row-reverse">
-        <Button
-          {label}
-          {disabled}
-          kind={'primary'}
-          on:click={() => {
-            void save()
-          }}
-        />
-      </div>
     </div>
   </div>
 </div>
+
+<style lang="scss">
+  .sso-hint {
+    font-size: 0.8125rem;
+    color: var(--theme-dark-color);
+    line-height: 1.5;
+  }
+</style>

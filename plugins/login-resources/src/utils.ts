@@ -720,6 +720,10 @@ export async function signUpJoin (
   }
 }
 
+export async function checkHasPassword (): Promise<boolean> {
+  return await getAccountClient().checkHasPassword()
+}
+
 export async function changePassword (oldPassword: string, password: string): Promise<void> {
   try {
     await getAccountClient().changePassword(oldPassword, password)

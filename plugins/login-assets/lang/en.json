@@ -7,6 +7,8 @@
   },
   "string": {
     "ChangePassword": "Change password",
+    "SetPassword": "Set a password",
+    "SSOPasswordDescription": "Your account uses external login. Set a password to also enable email + password sign-in.",
     "CurrentPassword": "Current password",
     "NewPassword": "New password",
     "EnterCurrentPassword": "Enter current password",

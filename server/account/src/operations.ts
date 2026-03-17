@@ -1310,6 +1310,24 @@ export async function confirm (
   return result
 }
 
+/**
+ * Checks whether the authenticated account has a password set.
+ * SSO-only accounts (Google, GitHub, OIDC) have no password hash.
+ */
+export async function checkHasPassword (
+  ctx: MeasureContext,
+  db: AccountDB,
+  branding: Branding | null,
+  token: string
+): Promise<boolean> {
+  const { account: accountUuid } = decodeTokenVerbose(ctx, token)
+  const account = await getAccount(db, accountUuid)
+  if (account == null) {
+    throw new PlatformError(new Status(Severity.ERROR, platform.status.AccountNotFound, { account: accountUuid }))
+  }
+  return account.hash != null
+}
+
 export async function changePassword (
   ctx: MeasureContext,
   db: AccountDB,
@@ -1322,7 +1340,7 @@ export async function changePassword (
 ): Promise<void> {
   const { oldPassword, newPassword } = params
 
-  if (oldPassword == null || oldPassword === '' || newPassword == null || newPassword === '') {
+  if (newPassword == null || newPassword === '') {
     throw new PlatformError(new Status(Severity.ERROR, platform.status.BadRequest, {}))
   }
 
@@ -1336,9 +1354,17 @@ export async function changePassword (
     throw new PlatformError(new Status(Severity.ERROR, platform.status.AccountNotFound, { account: accountUuid }))
   }
 
-  if (!verifyPassword(oldPassword, account.hash, account.salt)) {
-    throw new PlatformError(new Status(Severity.ERROR, platform.status.Forbidden, {}))
+  if (account.hash != null) {
+    // Account has an existing password — require old password verification
+    if (oldPassword == null || oldPassword === '') {
+      throw new PlatformError(new Status(Severity.ERROR, platform.status.BadRequest, {}))
+    }
+    if (!verifyPassword(oldPassword, account.hash, account.salt)) {
+      throw new PlatformError(new Status(Severity.ERROR, platform.status.Forbidden, {}))
+    }
   }
+  // SSO-only accounts (hash == null): allow setting password without old password.
+  // The user is already authenticated via their session token.
 
   await setPassword(ctx, db, branding, accountUuid, newPassword)
 
@@ -2996,6 +3022,7 @@ export type AccountMethods =
   | 'getInviteInfo'
   | 'signUpJoin'
   | 'confirm'
+  | 'checkHasPassword'
   | 'changePassword'
   | 'requestPasswordReset'
   | 'restorePassword'
@@ -3072,6 +3099,7 @@ export function getMethods (hasSignUp: boolean = true): Partial<Record<AccountMe
     getInviteInfo: wrap(getInviteInfo),
     signUpJoin: wrap(signUpJoin),
     confirm: wrap(confirm),
+    checkHasPassword: wrap(checkHasPassword),
     changePassword: wrap(changePassword),
     requestPasswordReset: wrap(requestPasswordReset),
     restorePassword: wrap(restorePassword),
