@@ -13,3 +13,8 @@ resources:
   - minio/deployment.yaml
   - minio/service.yaml
   - minio/pvc.yaml
+  - jaeger/deployment.yaml
+  - jaeger/service.yaml
+  - jaeger/pvc.yaml
+  - oauth2-proxy/deployment.yaml
+  - oauth2-proxy/service.yaml

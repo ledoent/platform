@@ -16,3 +16,5 @@ resources:
   - rekoni/service.yaml
   - stats/deployment.yaml
   - stats/service.yaml
+  - analytics-collector/deployment.yaml
+  - analytics-collector/service.yaml

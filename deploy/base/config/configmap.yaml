@@ -30,3 +30,6 @@ data:
   TELEGRAM_URL: "https://huly.hz.ledoweb.com/_telegram"
   CALENDAR_URL: "https://huly.hz.ledoweb.com/_calendar"
   LOVE_ENDPOINT: "https://huly.hz.ledoweb.com/_love"
+  # Observability
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4318/v1/traces"
+  ANALYTICS_COLLECTOR_URL: "https://huly.hz.ledoweb.com/_analytics"

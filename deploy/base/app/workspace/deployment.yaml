@@ -71,6 +71,11 @@ spec:
                 configMapKeyRef:
                   name: huly-config
                   key: MODEL_ENABLED
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: huly-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
           resources:
             requests:
               cpu: 50m

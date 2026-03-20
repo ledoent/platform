@@ -7,3 +7,6 @@ resources:
   - ingress-collaborator.yaml
   - ingress-rekoni.yaml
   - ingress-stats.yaml
+  - ingress-analytics.yaml
+  - ingress-jaeger.yaml
+  - ingress-oauth2.yaml

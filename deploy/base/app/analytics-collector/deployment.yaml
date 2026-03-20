@@ -1,34 +1,36 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: collaborator
+  name: analytics-collector
   labels:
-    app.kubernetes.io/name: collaborator
+    app.kubernetes.io/name: analytics-collector
     app.kubernetes.io/part-of: huly
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: collaborator
+      app.kubernetes.io/name: analytics-collector
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: collaborator
+        app.kubernetes.io/name: analytics-collector
     spec:
       containers:
-        - name: collaborator
-          image: hardcoreeng/collaborator:latest
+        - name: analytics-collector
+          image: hardcoreeng/analytics-collector:latest
           ports:
-            - name: ws
-              containerPort: 3078
+            - name: http
+              containerPort: 4017
           env:
-            - name: COLLABORATOR_PORT
-              value: "3078"
+            - name: PORT
+              value: "4017"
             - name: SECRET
               valueFrom:
                 secretKeyRef:
                   name: huly-secret
                   key: SERVER_SECRET
+            - name: SERVICE_ID
+              value: "analytics-collector-service"
             - name: ACCOUNTS_URL
               valueFrom:
                 configMapKeyRef:
@@ -39,11 +41,6 @@ spec:
                 configMapKeyRef:
                   name: huly-config
                   key: STATS_URL_INTERNAL
-            - name: STORAGE_CONFIG
-              valueFrom:
-                secretKeyRef:
-                  name: huly-secret
-                  key: STORAGE_CONFIG
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               valueFrom:
                 configMapKeyRef:
@@ -51,12 +48,12 @@ spec:
                   key: OTEL_EXPORTER_OTLP_ENDPOINT
           readinessProbe:
             tcpSocket:
-              port: ws
-            initialDelaySeconds: 15
+              port: http
+            initialDelaySeconds: 10
             periodSeconds: 10
           resources:
             requests:
               cpu: 50m
-              memory: 128Mi
+              memory: 64Mi
             limits:
-              memory: 512Mi
+              memory: 256Mi

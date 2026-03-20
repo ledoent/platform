@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: huly-analytics
+  labels:
+    app.kubernetes.io/part-of: huly
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - huly.hz.ledoweb.com
+      secretName: huly-tls
+  rules:
+    - host: huly.hz.ledoweb.com
+      http:
+        paths:
+          - path: /_analytics(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: analytics-collector
+                port:
+                  number: 4017

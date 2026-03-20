@@ -29,6 +29,11 @@ spec:
                 secretKeyRef:
                   name: huly-secret
                   key: SERVER_SECRET
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: huly-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
           readinessProbe:
             tcpSocket:
               port: http
