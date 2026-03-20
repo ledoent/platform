@@ -23,6 +23,7 @@ spec:
             - --email-domain=ledoweb.com
             - --upstream=static://200
             - --http-address=0.0.0.0:4180
+            - --proxy-prefix=/_oauth2
             - --cookie-secure=true
             - --cookie-domain=huly.hz.ledoweb.com
             - --set-xauthrequest=true
