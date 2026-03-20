@@ -17,6 +17,19 @@ spec:
       labels:
         app.kubernetes.io/name: jaeger
     spec:
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+        runAsGroup: 10001
+      initContainers:
+        - name: fix-permissions
+          image: busybox:1.36
+          command: ["sh", "-c", "chown -R 10001:10001 /badger"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: data
+              mountPath: /badger
       containers:
         - name: jaeger
           image: jaegertracing/all-in-one:1.76.0
