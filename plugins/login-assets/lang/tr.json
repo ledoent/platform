@@ -92,10 +92,10 @@
     "SignUpAndJoin": "Kayıt ol ve katıl",
     "CreateNewAccount": "Yeni hesap oluştur",
     "SignedInAs": "{name} olarak giriş yapıldı",
-    "SetPassword": "Set a password",
-    "SSOPasswordDescription": "Your account uses external login. Set up a password via email confirmation.",
-    "SendSetupLink": "Send setup link",
-    "SSOPasswordEmailSent": "Check your email for a link to set your password.",
-    "SSONoEmailLinked": "No email address is linked to your account. Add one in Account Settings → Manage Identities first."
+    "SetPassword": "Parola belirle",
+    "SSOPasswordDescription": "Hesabınız harici giriş kullanıyor. E-posta onayı ile bir parola ayarlayın.",
+    "SendSetupLink": "Kurulum bağlantısı gönder",
+    "SSOPasswordEmailSent": "Parolanızı belirlemek için e-postanızdaki bağlantıyı kontrol edin.",
+    "SSONoEmailLinked": "Hesabınıza bağlı bir e-posta adresi yok. Önce Hesap Ayarları → Kimlikleri Yönet bölümünden bir tane ekleyin."
   }
 }

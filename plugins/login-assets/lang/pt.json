@@ -92,10 +92,10 @@
     "SignUpAndJoin": "Registar e participar",
     "CreateNewAccount": "Criar nova conta",
     "SignedInAs": "Sessão iniciada como {name}",
-    "SetPassword": "Set a password",
-    "SSOPasswordDescription": "Your account uses external login. Set up a password via email confirmation.",
-    "SendSetupLink": "Send setup link",
-    "SSOPasswordEmailSent": "Check your email for a link to set your password.",
-    "SSONoEmailLinked": "No email address is linked to your account. Add one in Account Settings → Manage Identities first."
+    "SetPassword": "Definir uma palavra-passe",
+    "SSOPasswordDescription": "A sua conta utiliza login externo. Configure uma palavra-passe através de confirmação por email.",
+    "SendSetupLink": "Enviar link de configuração",
+    "SSOPasswordEmailSent": "Verifique o seu email para encontrar um link para definir a sua palavra-passe.",
+    "SSONoEmailLinked": "Nenhum endereço de email está associado à sua conta. Adicione um em Definições da conta → Gerir identidades."
   }
 }

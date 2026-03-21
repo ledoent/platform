@@ -92,10 +92,10 @@
     "SignUpAndJoin": "注册并加入",
     "CreateNewAccount": "创建新账户",
     "SignedInAs": "已以 {name} 身份登录",
-    "SetPassword": "Set a password",
-    "SSOPasswordDescription": "Your account uses external login. Set up a password via email confirmation.",
-    "SendSetupLink": "Send setup link",
-    "SSOPasswordEmailSent": "Check your email for a link to set your password.",
-    "SSONoEmailLinked": "No email address is linked to your account. Add one in Account Settings → Manage Identities first."
+    "SetPassword": "设置密码",
+    "SSOPasswordDescription": "您的账户使用外部登录。请通过电子邮件确认来设置密码。",
+    "SendSetupLink": "发送设置链接",
+    "SSOPasswordEmailSent": "请查收邮件中的密码设置链接。",
+    "SSONoEmailLinked": "您的账户未关联电子邮件地址。请先在账户设置 → 管理身份中添加。"
   }
 }
