@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/models/activity.dart';
 import '../../core/models/issue.dart';
 import '../../core/models/issue_status.dart';
+import '../../core/models/member.dart';
 import '../../core/theme/huly_theme.dart';
 import '../../core/widgets/huly_chip.dart';
 import '../../core/widgets/priority_icon.dart';
@@ -30,6 +32,8 @@ class IssueDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final issueAsync = ref.watch(issueDetailProvider(issueId));
     final statusesAsync = ref.watch(issueStatusesProvider);
+    final membersAsync = ref.watch(membersProvider);
+    final activityAsync = ref.watch(activityProvider(issueId));
 
     return Scaffold(
       backgroundColor: HulyColors.background,
@@ -103,7 +107,8 @@ class IssueDetailScreen extends ConsumerWidget {
                     ),
                     if (issue.assignee != null)
                       HulyChip(
-                        label: issue.assignee!,
+                        label: _resolveMemberName(
+                            issue.assignee!, membersAsync.valueOrNull),
                         icon: Icons.person_outline,
                       ),
                   ],
@@ -133,12 +138,34 @@ class IssueDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+                // Activity / comments
+                const SizedBox(height: 24),
+                const Divider(color: HulyColors.divider),
+                const SizedBox(height: 16),
+                const Text(
+                  'Activity',
+                  style: TextStyle(
+                    color: HulyColors.darkText,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _ActivityFeed(
+                  activityAsync: activityAsync,
+                  members: membersAsync.valueOrNull,
+                ),
               ],
             ),
           );
         },
       ),
     );
+  }
+
+  String _resolveMemberName(String ref, Map<String, Member>? members) {
+    if (members == null) return ref;
+    return members[ref]?.name ?? ref;
   }
 
   String _resolveStatusName(String statusRef, List<IssueStatus>? statuses) {
@@ -160,5 +187,105 @@ class IssueDetailScreen extends ConsumerWidget {
       default:
         return Icons.more_horiz;
     }
+  }
+}
+
+class _ActivityFeed extends StatelessWidget {
+  final AsyncValue<List<ChatMessage>> activityAsync;
+  final Map<String, Member>? members;
+
+  const _ActivityFeed({required this.activityAsync, this.members});
+
+  String _resolveAuthor(String? ref) {
+    if (ref == null) return 'Unknown';
+    if (members == null) return ref;
+    return members![ref]?.name ?? ref;
+  }
+
+  String _formatTime(int? timestamp) {
+    if (timestamp == null) return '';
+    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return activityAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Text('Error loading activity: $e',
+          style: const TextStyle(color: HulyColors.errorText, fontSize: 12)),
+      data: (messages) {
+        if (messages.isEmpty) {
+          return const Text('No comments yet.',
+              style: TextStyle(color: HulyColors.darkerText, fontSize: 13));
+        }
+        return Column(
+          children: messages.map((msg) {
+            final text = msg.message
+                .replaceAll(RegExp(r'<[^>]*>'), '')
+                .trim();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: HulyColors.inputFill,
+                    child: Text(
+                      _resolveAuthor(msg.createdBy ?? msg.modifiedBy)
+                          .substring(0, 1)
+                          .toUpperCase(),
+                      style: const TextStyle(
+                          color: HulyColors.contentText, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              _resolveAuthor(msg.createdBy ?? msg.modifiedBy),
+                              style: const TextStyle(
+                                color: HulyColors.contentText,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatTime(msg.createdOn ?? msg.modifiedOn),
+                              style: const TextStyle(
+                                color: HulyColors.darkerText,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          text,
+                          style: const TextStyle(
+                            color: HulyColors.contentText,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/models/activity.dart';
 import '../../core/models/issue.dart';
 import '../../core/models/issue_status.dart';
+import '../../core/models/member.dart';
 import '../../core/models/project.dart';
 import '../auth/auth_provider.dart';
 
@@ -22,6 +24,28 @@ final issueStatusesProvider =
     query: {'ofAttribute': 'tracker:attribute:IssueStatus'},
   );
   return results.map((e) => IssueStatus.fromJson(e)).toList();
+});
+
+/// Fetches workspace members (contact:class:Person documents).
+final membersProvider = FutureProvider<Map<String, Member>>((ref) async {
+  final client = ref.watch(restClientProvider);
+  if (client == null) return {};
+  final results = await client.findAll('contact:class:Person');
+  final members = results.map((e) => Member.fromJson(e)).toList();
+  return {for (final m in members) m.id: m};
+});
+
+/// Fetches activity messages (comments) for a given document.
+final activityProvider =
+    FutureProvider.family<List<ChatMessage>, String>((ref, docId) async {
+  final client = ref.watch(restClientProvider);
+  if (client == null) return [];
+  final results = await client.findAll(
+    'chunter:class:ChatMessage',
+    query: {'attachedTo': docId},
+    options: {'sort': {'createdOn': 1}, 'limit': 100},
+  );
+  return results.map((e) => ChatMessage.fromJson(e)).toList();
 });
 
 /// Fetches issues for a given project space ID.

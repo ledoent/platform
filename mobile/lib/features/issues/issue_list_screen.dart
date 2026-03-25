@@ -6,7 +6,6 @@ import '../../core/models/issue.dart';
 import '../../core/models/project.dart';
 import '../../core/theme/huly_theme.dart';
 import '../../core/widgets/priority_icon.dart';
-import '../auth/auth_provider.dart';
 import 'issue_provider.dart';
 
 class IssueListScreen extends ConsumerStatefulWidget {
@@ -72,12 +71,6 @@ class _IssueListScreenState extends ConsumerState<IssueListScreen>
       appBar: AppBar(
         backgroundColor: HulyColors.header,
         title: const Text('Issues'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: HulyColors.darkText),
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/create'),

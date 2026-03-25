@@ -10,6 +10,7 @@ import 'features/auth/workspace_screen.dart';
 import 'features/create_issue/create_issue_screen.dart';
 import 'features/issues/issue_detail_screen.dart';
 import 'features/issues/issue_list_screen.dart';
+import 'features/settings/settings_screen.dart';
 
 final _routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
@@ -45,7 +46,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Workspace selected — allow any route; redirect root to /issues.
-      if (path == '/server' || path == '/login' || path == '/tfa' || path == '/workspace') {
+      if (path == '/server' ||
+          path == '/login' ||
+          path == '/tfa' ||
+          path == '/workspace') {
         return '/issues';
       }
       if (path == '/') return '/issues';
@@ -57,7 +61,15 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/tfa', builder: (_, __) => const TfaScreen()),
       GoRoute(path: '/workspace', builder: (_, __) => const WorkspaceScreen()),
-      GoRoute(path: '/issues', builder: (_, __) => const IssueListScreen()),
+      ShellRoute(
+        builder: (context, state, child) => _MainShell(child: child),
+        routes: [
+          GoRoute(
+              path: '/issues', builder: (_, __) => const IssueListScreen()),
+          GoRoute(
+              path: '/settings', builder: (_, __) => const SettingsScreen()),
+        ],
+      ),
       GoRoute(
         path: '/issue/:id',
         builder: (_, state) =>
@@ -76,6 +88,46 @@ final _routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _MainShell extends StatelessWidget {
+  final Widget child;
+  const _MainShell({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    final index = location.startsWith('/settings') ? 1 : 0;
+
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: HulyColors.header,
+        indicatorColor: HulyColors.primaryButton.withValues(alpha: 0.2),
+        selectedIndex: index,
+        onDestinationSelected: (i) {
+          switch (i) {
+            case 0:
+              context.go('/issues');
+            case 1:
+              context.go('/settings');
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.task_outlined),
+            selectedIcon: Icon(Icons.task),
+            label: 'Issues',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class HulyApp extends ConsumerWidget {
   const HulyApp({super.key});
