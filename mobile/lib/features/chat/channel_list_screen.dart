@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,11 +8,50 @@ import '../../core/theme/huly_theme.dart';
 import '../issues/issue_provider.dart';
 import 'chat_provider.dart';
 
-class ChannelListScreen extends ConsumerWidget {
+class ChannelListScreen extends ConsumerStatefulWidget {
   const ChannelListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChannelListScreen> createState() => _ChannelListScreenState();
+}
+
+class _ChannelListScreenState extends ConsumerState<ChannelListScreen>
+    with WidgetsBindingObserver {
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startPoll();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(channelsProvider);
+      _startPoll();
+    } else if (state == AppLifecycleState.paused) {
+      _pollTimer?.cancel();
+    }
+  }
+
+  void _startPoll() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      ref.invalidate(channelsProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final channelsAsync = ref.watch(channelsProvider);
     final membersAsync = ref.watch(membersProvider);
 

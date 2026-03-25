@@ -24,7 +24,8 @@ class MessageThreadScreen extends ConsumerStatefulWidget {
       _MessageThreadScreenState();
 }
 
-class _MessageThreadScreenState extends ConsumerState<MessageThreadScreen> {
+class _MessageThreadScreenState extends ConsumerState<MessageThreadScreen>
+    with WidgetsBindingObserver {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _pollTimer;
@@ -33,17 +34,34 @@ class _MessageThreadScreenState extends ConsumerState<MessageThreadScreen> {
   @override
   void initState() {
     super.initState();
-    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      ref.invalidate(channelMessagesProvider(widget.channelId));
-    });
+    WidgetsBinding.instance.addObserver(this);
+    _startPoll();
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(channelMessagesProvider(widget.channelId));
+      _startPoll();
+    } else if (state == AppLifecycleState.paused) {
+      _pollTimer?.cancel();
+    }
+  }
+
+  void _startPoll() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      ref.invalidate(channelMessagesProvider(widget.channelId));
+    });
   }
 
   Future<void> _send() async {
