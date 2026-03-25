@@ -19,6 +19,29 @@ Map<String, dynamic> buildUpdateIssueTx({
   };
 }
 
+/// Builds a TxCreateDoc transaction for a ChatMessage.
+Map<String, dynamic> buildCreateChatMessageTx({
+  required String channelId,
+  required String message,
+  String? modifiedBy,
+}) {
+  final msgId = 'chunter:msg:${_uuid.v4()}';
+
+  return {
+    '_class': 'core:class:TxCreateDoc',
+    'objectId': msgId,
+    'objectClass': 'chunter:class:ChatMessage',
+    'objectSpace': channelId,
+    'attributes': {
+      'attachedTo': channelId,
+      'attachedToClass': 'chunter:class:Channel',
+      'collection': 'messages',
+      'message': message,
+    },
+    if (modifiedBy != null) 'modifiedBy': modifiedBy,
+  };
+}
+
 /// Builds a TxCreateDoc transaction for the Huly REST API.
 Map<String, dynamic> buildCreateIssueTx({
   required String space,

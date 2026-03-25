@@ -7,6 +7,8 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/server_url_screen.dart';
 import 'features/auth/tfa_screen.dart';
 import 'features/auth/workspace_screen.dart';
+import 'features/chat/channel_list_screen.dart';
+import 'features/chat/message_thread_screen.dart';
 import 'features/create_issue/create_issue_screen.dart';
 import 'features/issues/issue_detail_screen.dart';
 import 'features/issues/issue_list_screen.dart';
@@ -67,8 +69,17 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/issues', builder: (_, __) => const IssueListScreen()),
           GoRoute(
+              path: '/chat', builder: (_, __) => const ChannelListScreen()),
+          GoRoute(
               path: '/settings', builder: (_, __) => const SettingsScreen()),
         ],
+      ),
+      GoRoute(
+        path: '/chat/:id',
+        builder: (_, state) => MessageThreadScreen(
+          channelId: state.pathParameters['id']!,
+          channelName: state.uri.queryParameters['name'],
+        ),
       ),
       GoRoute(
         path: '/issue/:id',
@@ -96,7 +107,12 @@ class _MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
-    final index = location.startsWith('/settings') ? 1 : 0;
+    int index = 0;
+    if (location.startsWith('/chat')) {
+      index = 1;
+    } else if (location.startsWith('/settings')) {
+      index = 2;
+    }
 
     return Scaffold(
       body: child,
@@ -109,6 +125,8 @@ class _MainShell extends StatelessWidget {
             case 0:
               context.go('/issues');
             case 1:
+              context.go('/chat');
+            case 2:
               context.go('/settings');
           }
         },
@@ -117,6 +135,11 @@ class _MainShell extends StatelessWidget {
             icon: Icon(Icons.task_outlined),
             selectedIcon: Icon(Icons.task),
             label: 'Issues',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline),
+            selectedIcon: Icon(Icons.chat_bubble),
+            label: 'Chat',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
