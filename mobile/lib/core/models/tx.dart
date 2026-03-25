@@ -19,6 +19,36 @@ Map<String, dynamic> buildUpdateIssueTx({
   };
 }
 
+/// Builds a TxCreateDoc transaction for an Attachment.
+Map<String, dynamic> buildCreateAttachmentTx({
+  required String attachedTo,
+  required String attachedToClass,
+  required String space,
+  required String name,
+  required String blobId,
+  required int size,
+  required String contentType,
+}) {
+  final attachmentId = 'attachment:doc:${_uuid.v4()}';
+
+  return {
+    '_class': 'core:class:TxCreateDoc',
+    'objectId': attachmentId,
+    'objectClass': 'attachment:class:Attachment',
+    'objectSpace': space,
+    'attributes': {
+      'attachedTo': attachedTo,
+      'attachedToClass': attachedToClass,
+      'collection': 'attachments',
+      'name': name,
+      'file': blobId,
+      'size': size,
+      'type': contentType,
+      'lastModified': DateTime.now().millisecondsSinceEpoch,
+    },
+  };
+}
+
 /// Builds a TxCreateDoc transaction for a ChatMessage.
 Map<String, dynamic> buildCreateChatMessageTx({
   required String channelId,

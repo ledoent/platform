@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/activity.dart';
+import '../../core/models/attachment.dart';
 import '../../core/models/issue.dart';
 import '../../core/models/issue_status.dart';
 import '../../core/models/member.dart';
@@ -46,6 +47,18 @@ final activityProvider =
     options: {'sort': {'createdOn': 1}, 'limit': 100},
   );
   return results.map((e) => ChatMessage.fromJson(e)).toList();
+});
+
+/// Fetches attachments for a given document.
+final attachmentsProvider =
+    FutureProvider.family<List<Attachment>, String>((ref, docId) async {
+  final client = ref.watch(restClientProvider);
+  if (client == null) return [];
+  final results = await client.findAll(
+    'attachment:class:Attachment',
+    query: {'attachedTo': docId},
+  );
+  return results.map((e) => Attachment.fromJson(e)).toList();
 });
 
 /// Fetches issues for a given project space ID.

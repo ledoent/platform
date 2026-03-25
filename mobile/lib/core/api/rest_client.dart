@@ -65,6 +65,32 @@ class HulyRestClient {
         : {};
   }
 
+  /// Upload a blob (file) and return the blob name/ID.
+  Future<void> uploadBlob({
+    required String name,
+    required String contentType,
+    required int size,
+    required List<int> bytes,
+  }) async {
+    final response = await _dio.put(
+      '$baseUrl/api/v1/blob',
+      data: Stream.fromIterable([bytes]),
+      queryParameters: {
+        'name': name,
+        'contentType': contentType,
+        'size': size.toString(),
+      },
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': contentType,
+          'Content-Length': size,
+        },
+      ),
+    );
+    _checkRateLimit(response);
+  }
+
   /// Get current account info.
   Future<Map<String, dynamic>> getAccount() async {
     final response = await _dio.get(_apiPath('account'));

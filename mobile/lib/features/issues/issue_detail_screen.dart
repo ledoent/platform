@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/models/activity.dart';
+import '../../core/models/attachment.dart';
 import '../../core/models/issue.dart';
 import '../../core/models/issue_status.dart';
 import '../../core/models/member.dart';
@@ -37,7 +39,9 @@ class IssueDetailScreen extends ConsumerStatefulWidget {
 
 class _IssueDetailScreenState extends ConsumerState<IssueDetailScreen> {
   final _commentController = TextEditingController();
+  final _imagePicker = ImagePicker();
   bool _sendingComment = false;
+  bool _uploading = false;
 
   @override
   void dispose() {
@@ -75,12 +79,63 @@ class _IssueDetailScreenState extends ConsumerState<IssueDetailScreen> {
     }
   }
 
+  Future<void> _pickAndUpload() async {
+    final file = await _imagePicker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    setState(() => _uploading = true);
+    try {
+      final client = ref.read(restClientProvider);
+      if (client == null) return;
+
+      final bytes = await file.readAsBytes();
+      final blobId =
+          'blob:${DateTime.now().millisecondsSinceEpoch}:${file.name}';
+      final contentType = file.mimeType ?? 'image/jpeg';
+
+      await client.uploadBlob(
+        name: blobId,
+        contentType: contentType,
+        size: bytes.length,
+        bytes: bytes,
+      );
+
+      final issueAsync = ref.read(issueDetailProvider(widget.issueId));
+      final issue = issueAsync.valueOrNull;
+      if (issue == null) return;
+
+      final tx = buildCreateAttachmentTx(
+        attachedTo: widget.issueId,
+        attachedToClass: 'tracker:class:Issue',
+        space: issue.space,
+        name: file.name,
+        blobId: blobId,
+        size: bytes.length,
+        contentType: contentType,
+      );
+      await client.tx(tx);
+      ref.invalidate(attachmentsProvider(widget.issueId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Upload failed: $e'),
+            backgroundColor: HulyColors.negative,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final issueAsync = ref.watch(issueDetailProvider(widget.issueId));
     final statusesAsync = ref.watch(issueStatusesProvider);
     final membersAsync = ref.watch(membersProvider);
     final activityAsync = ref.watch(activityProvider(widget.issueId));
+    final attachmentsAsync = ref.watch(attachmentsProvider(widget.issueId));
 
     return Scaffold(
       backgroundColor: HulyColors.background,
@@ -186,6 +241,40 @@ class _IssueDetailScreenState extends ConsumerState<IssueDetailScreen> {
                     ),
                   ),
                 ],
+                // Attachments
+                const SizedBox(height: 24),
+                const Divider(color: HulyColors.divider),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text(
+                      'Attachments',
+                      style: TextStyle(
+                        color: HulyColors.darkText,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: _uploading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            )
+                          : const Icon(Icons.attach_file,
+                              color: HulyColors.accent, size: 20),
+                      onPressed: _uploading ? null : _pickAndUpload,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _AttachmentsList(
+                    attachmentsAsync: attachmentsAsync),
                 // Activity / comments
                 const SizedBox(height: 24),
                 const Divider(color: HulyColors.divider),
@@ -287,6 +376,68 @@ class _IssueDetailScreenState extends ConsumerState<IssueDetailScreen> {
       default:
         return Icons.more_horiz;
     }
+  }
+}
+
+class _AttachmentsList extends StatelessWidget {
+  final AsyncValue<List<Attachment>> attachmentsAsync;
+
+  const _AttachmentsList({required this.attachmentsAsync});
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return attachmentsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (attachments) {
+        if (attachments.isEmpty) {
+          return const Text('No attachments.',
+              style: TextStyle(color: HulyColors.darkerText, fontSize: 13));
+        }
+        return Column(
+          children: attachments
+              .map((a) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Icon(
+                          a.type.startsWith('image/')
+                              ? Icons.image_outlined
+                              : Icons.insert_drive_file_outlined,
+                          color: HulyColors.darkText,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            a.name,
+                            style: const TextStyle(
+                              color: HulyColors.contentText,
+                              fontSize: 13,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _formatSize(a.size),
+                          style: const TextStyle(
+                            color: HulyColors.darkerText,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        );
+      },
+    );
   }
 }
 
