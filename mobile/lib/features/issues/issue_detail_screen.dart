@@ -5,7 +5,9 @@ import '../../core/models/issue.dart';
 import '../../core/models/issue_status.dart';
 import '../../core/models/member.dart';
 import '../../core/theme/huly_theme.dart';
+import '../../core/utils/html.dart';
 import '../../core/widgets/huly_chip.dart';
+import '../../core/widgets/message_bubble.dart';
 import '../../core/widgets/priority_icon.dart';
 import '../auth/auth_provider.dart';
 import 'edit_issue_screen.dart';
@@ -129,9 +131,7 @@ class IssueDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    issue.description!
-                        .replaceAll(RegExp(r'<[^>]*>'), '')
-                        .trim(),
+                    stripHtml(issue.description!),
                     style: const TextStyle(
                       color: HulyColors.contentText,
                       height: 1.5,
@@ -202,12 +202,6 @@ class _ActivityFeed extends StatelessWidget {
     return members![ref]?.name ?? ref;
   }
 
-  String _formatTime(int? timestamp) {
-    if (timestamp == null) return '';
-    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return activityAsync.when(
@@ -223,67 +217,14 @@ class _ActivityFeed extends StatelessWidget {
               style: TextStyle(color: HulyColors.darkerText, fontSize: 13));
         }
         return Column(
-          children: messages.map((msg) {
-            final text = msg.message
-                .replaceAll(RegExp(r'<[^>]*>'), '')
-                .trim();
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: HulyColors.inputFill,
-                    child: Text(
-                      _resolveAuthor(msg.createdBy ?? msg.modifiedBy)
-                          .substring(0, 1)
-                          .toUpperCase(),
-                      style: const TextStyle(
-                          color: HulyColors.contentText, fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              _resolveAuthor(msg.createdBy ?? msg.modifiedBy),
-                              style: const TextStyle(
-                                color: HulyColors.contentText,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _formatTime(msg.createdOn ?? msg.modifiedOn),
-                              style: const TextStyle(
-                                color: HulyColors.darkerText,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          text,
-                          style: const TextStyle(
-                            color: HulyColors.contentText,
-                            fontSize: 13,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+          children: messages
+              .map((msg) => MessageBubble(
+                    authorName:
+                        _resolveAuthor(msg.createdBy ?? msg.modifiedBy),
+                    messageHtml: msg.message,
+                    timestamp: msg.createdOn ?? msg.modifiedOn,
+                  ))
+              .toList(),
         );
       },
     );

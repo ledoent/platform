@@ -5,6 +5,7 @@ import '../../core/models/member.dart';
 import '../../core/models/tx.dart';
 import '../../core/theme/huly_theme.dart';
 import '../../core/utils/html.dart';
+import '../../core/widgets/message_bubble.dart';
 import '../auth/auth_provider.dart';
 import '../issues/issue_provider.dart';
 import 'chat_provider.dart';
@@ -144,66 +145,12 @@ class _MessageThreadScreenState extends ConsumerState<MessageThreadScreen>
                     final name = (members != null && author != null)
                         ? (members[author]?.name ?? author)
                         : (author ?? 'Unknown');
-                    final text = msg.message
-                        .replaceAll(RegExp(r'<[^>]*>'), '')
-                        .trim();
-                    final time = _formatTime(msg.createdOn ?? msg.modifiedOn);
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: HulyColors.inputFill,
-                            child: Text(
-                              name.isNotEmpty
-                                  ? name[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                  color: HulyColors.contentText, fontSize: 13),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: const TextStyle(
-                                        color: HulyColors.contentText,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      time,
-                                      style: const TextStyle(
-                                        color: HulyColors.darkerText,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  text,
-                                  style: const TextStyle(
-                                    color: HulyColors.contentText,
-                                    fontSize: 14,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                    return MessageBubble(
+                      authorName: name,
+                      messageHtml: msg.message,
+                      timestamp: msg.createdOn ?? msg.modifiedOn,
+                      avatarRadius: 16,
                     );
                   },
                 );
@@ -259,9 +206,4 @@ class _MessageThreadScreenState extends ConsumerState<MessageThreadScreen>
     );
   }
 
-  String _formatTime(int? timestamp) {
-    if (timestamp == null) return '';
-    final dt = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-  }
 }

@@ -123,7 +123,12 @@ class _ChannelTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => context.push('/chat/${channel.id}'),
+          onTap: () => context.push(
+                Uri(
+                  path: '/chat/${channel.id}',
+                  queryParameters: {'name': _displayName},
+                ).toString(),
+              ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(

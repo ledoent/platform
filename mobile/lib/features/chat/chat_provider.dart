@@ -7,14 +7,8 @@ import '../auth/auth_provider.dart';
 final channelsProvider = FutureProvider<List<Channel>>((ref) async {
   final client = ref.watch(restClientProvider);
   if (client == null) return [];
-  final channels = await client.findAll(
-    'chunter:class:Channel',
-    options: {'sort': {'modifiedOn': -1}},
-  );
-  final dms = await client.findAll(
-    'chunter:class:DirectMessage',
-    options: {'sort': {'modifiedOn': -1}},
-  );
+  final channels = await client.findAll('chunter:class:Channel');
+  final dms = await client.findAll('chunter:class:DirectMessage');
   return [...channels, ...dms]
       .map((e) => Channel.fromJson(e))
       .toList()
