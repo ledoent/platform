@@ -4,6 +4,7 @@ import '../../core/models/activity.dart';
 import '../../core/models/issue.dart';
 import '../../core/models/issue_status.dart';
 import '../../core/models/member.dart';
+import '../../core/models/tx.dart';
 import '../../core/theme/huly_theme.dart';
 import '../../core/utils/html.dart';
 import '../../core/widgets/huly_chip.dart';
@@ -26,16 +27,60 @@ final issueDetailProvider =
   return Issue.fromJson(results.first);
 });
 
-class IssueDetailScreen extends ConsumerWidget {
+class IssueDetailScreen extends ConsumerStatefulWidget {
   final String issueId;
   const IssueDetailScreen({super.key, required this.issueId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final issueAsync = ref.watch(issueDetailProvider(issueId));
+  ConsumerState<IssueDetailScreen> createState() => _IssueDetailScreenState();
+}
+
+class _IssueDetailScreenState extends ConsumerState<IssueDetailScreen> {
+  final _commentController = TextEditingController();
+  bool _sendingComment = false;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _postComment() async {
+    final text = _commentController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() => _sendingComment = true);
+    try {
+      final client = ref.read(restClientProvider);
+      if (client == null) return;
+
+      final tx = buildCreateChatMessageTx(
+        channelId: widget.issueId,
+        message: '<p>${escapeHtml(text)}</p>',
+      );
+      await client.tx(tx);
+      _commentController.clear();
+      ref.invalidate(activityProvider(widget.issueId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to post comment: $e'),
+            backgroundColor: HulyColors.negative,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sendingComment = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final issueAsync = ref.watch(issueDetailProvider(widget.issueId));
     final statusesAsync = ref.watch(issueStatusesProvider);
     final membersAsync = ref.watch(membersProvider);
-    final activityAsync = ref.watch(activityProvider(issueId));
+    final activityAsync = ref.watch(activityProvider(widget.issueId));
 
     return Scaffold(
       backgroundColor: HulyColors.background,
@@ -69,7 +114,10 @@ class IssueDetailScreen extends ConsumerWidget {
                   style: TextStyle(color: HulyColors.darkText)),
             );
           }
-          return SingleChildScrollView(
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,6 +205,58 @@ class IssueDetailScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+              ),
+              // Comment input bar
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                decoration: const BoxDecoration(
+                  color: HulyColors.header,
+                  border:
+                      Border(top: BorderSide(color: HulyColors.divider)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _commentController,
+                        decoration: InputDecoration(
+                          hintText: 'Add a comment...',
+                          hintStyle: const TextStyle(
+                              color: HulyColors.darkerText),
+                          filled: true,
+                          fillColor: HulyColors.inputFill,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                        ),
+                        style: const TextStyle(
+                            color: HulyColors.contentText),
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _postComment(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed:
+                          _sendingComment ? null : _postComment,
+                      icon: _sendingComment
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            )
+                          : Icon(Icons.send,
+                              color: HulyColors.accent),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           );
         },
       ),
