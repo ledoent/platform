@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../core/api/account_client.dart';
 import '../../core/api/rest_client.dart';
 import '../../core/models/login_info.dart';
 import '../../core/storage/secure_storage.dart';
 
 /// Auth state: unauthenticated → (otpPending | tfaPending) → loggedIn → workspaceSelected.
-enum AuthStatus { unauthenticated, otpPending, tfaPending, loggedIn, workspaceSelected }
+/// locked = workspace is selected but biometric auth required.
+enum AuthStatus { unauthenticated, otpPending, tfaPending, loggedIn, workspaceSelected, locked }
 
 class AuthState {
   final AuthStatus status;
@@ -18,6 +20,7 @@ class AuthState {
   final String? otpEmail;
   final String? error;
   final bool loading;
+  final bool biometricEnabled;
 
   const AuthState({
     this.status = AuthStatus.unauthenticated,
@@ -30,6 +33,7 @@ class AuthState {
     this.otpEmail,
     this.error,
     this.loading = false,
+    this.biometricEnabled = false,
   });
 
   AuthState copyWith({
@@ -43,6 +47,7 @@ class AuthState {
     String? otpEmail,
     String? error,
     bool? loading,
+    bool? biometricEnabled,
   }) {
     return AuthState(
       status: status ?? this.status,
@@ -55,6 +60,7 @@ class AuthState {
       otpEmail: otpEmail ?? this.otpEmail,
       error: error,
       loading: loading ?? this.loading,
+      biometricEnabled: biometricEnabled ?? this.biometricEnabled,
     );
   }
 }
@@ -263,10 +269,14 @@ class AuthNotifier extends Notifier<AuthState> {
 
     final ws = await _storage.getWorkspaceSession();
     if (ws != null) {
+      final biometricEnabled = await _storage.isBiometricEnabled();
       state = state.copyWith(
         serverUrl: serverUrl,
         accountsUrl: accountsUrl,
-        status: AuthStatus.workspaceSelected,
+        status: biometricEnabled
+            ? AuthStatus.locked
+            : AuthStatus.workspaceSelected,
+        biometricEnabled: biometricEnabled,
         workspaceLogin: WorkspaceLoginInfo(
           token: ws.token,
           endpoint: ws.endpoint,
@@ -281,6 +291,34 @@ class AuthNotifier extends Notifier<AuthState> {
         status: AuthStatus.unauthenticated,
       );
     }
+  }
+
+  /// Toggle biometric lock.
+  Future<void> setBiometricEnabled(bool enabled) async {
+    await _storage.setBiometricEnabled(enabled);
+    state = state.copyWith(biometricEnabled: enabled);
+  }
+
+  /// Authenticate with biometrics to unlock the app.
+  Future<void> unlockWithBiometrics() async {
+    final localAuth = LocalAuthentication();
+    try {
+      final didAuthenticate = await localAuth.authenticate(
+        localizedReason: 'Authenticate to access Huly',
+        options: const AuthenticationOptions(biometricOnly: true),
+      );
+      if (didAuthenticate) {
+        state = state.copyWith(status: AuthStatus.workspaceSelected);
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Biometric auth failed: $e');
+    }
+  }
+
+  /// Check if biometrics are available on this device.
+  Future<bool> canUseBiometrics() async {
+    final localAuth = LocalAuthentication();
+    return await localAuth.canCheckBiometrics || await localAuth.isDeviceSupported();
   }
 
   /// Logout and clear stored credentials.

@@ -51,5 +51,12 @@ class SecureStorageService {
     return (id: id, token: token, endpoint: endpoint, url: url);
   }
 
+  static const _keyBiometricEnabled = 'biometric_enabled';
+
+  Future<void> setBiometricEnabled(bool enabled) =>
+      _storage.write(key: _keyBiometricEnabled, value: enabled.toString());
+  Future<bool> isBiometricEnabled() async =>
+      (await _storage.read(key: _keyBiometricEnabled)) == 'true';
+
   Future<void> clearAll() => _storage.deleteAll();
 }

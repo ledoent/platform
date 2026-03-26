@@ -36,6 +36,22 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           _SettingsSection(
+            title: 'Security',
+            children: [
+              _SettingsTile(
+                icon: Icons.fingerprint,
+                label: 'Biometric lock',
+                trailing: Switch.adaptive(
+                  value: auth.biometricEnabled,
+                  onChanged: (value) =>
+                      ref.read(authProvider.notifier).setBiometricEnabled(value),
+                  activeColor: HulyColors.accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _SettingsSection(
             title: 'Account',
             children: [
               _SettingsTile(
@@ -101,6 +117,7 @@ class _SettingsTile extends StatelessWidget {
   final String? value;
   final VoidCallback? onTap;
   final bool isDestructive;
+  final Widget? trailing;
 
   const _SettingsTile({
     required this.icon,
@@ -108,6 +125,7 @@ class _SettingsTile extends StatelessWidget {
     this.value,
     this.onTap,
     this.isDestructive = false,
+    this.trailing,
   });
 
   @override
@@ -125,7 +143,8 @@ class _SettingsTile extends StatelessWidget {
             Expanded(
               child: Text(label, style: TextStyle(color: color, fontSize: 15)),
             ),
-            if (value != null)
+            if (trailing != null) trailing!,
+            if (trailing == null && value != null)
               Flexible(
                 child: Text(
                   value!,
@@ -135,7 +154,7 @@ class _SettingsTile extends StatelessWidget {
                   textAlign: TextAlign.right,
                 ),
               ),
-            if (onTap != null && value == null)
+            if (trailing == null && onTap != null && value == null)
               const Icon(Icons.chevron_right, color: HulyColors.darkerText),
           ],
         ),

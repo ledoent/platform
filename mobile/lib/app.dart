@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/theme/huly_theme.dart';
 import 'features/auth/auth_provider.dart';
+import 'features/auth/lock_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/server_url_screen.dart';
 import 'features/auth/tfa_screen.dart';
@@ -47,11 +48,17 @@ final _routerProvider = Provider<GoRouter>((ref) {
         return path == '/workspace' ? null : '/workspace';
       }
 
+      // Locked → biometric unlock screen.
+      if (auth.status == AuthStatus.locked) {
+        return path == '/locked' ? null : '/locked';
+      }
+
       // Workspace selected — allow any route; redirect root to /issues.
       if (path == '/server' ||
           path == '/login' ||
           path == '/tfa' ||
-          path == '/workspace') {
+          path == '/workspace' ||
+          path == '/locked') {
         return '/issues';
       }
       if (path == '/') return '/issues';
@@ -63,6 +70,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/tfa', builder: (_, __) => const TfaScreen()),
       GoRoute(path: '/workspace', builder: (_, __) => const WorkspaceScreen()),
+      GoRoute(path: '/locked', builder: (_, __) => const LockScreen()),
       ShellRoute(
         builder: (context, state, child) => _MainShell(child: child),
         routes: [
