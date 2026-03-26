@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/auth_provider.dart';
+import '../../services/push_notification_service.dart';
 import 'websocket_client.dart';
 
 /// Provides a connected WebSocket client when a workspace is selected.
@@ -24,6 +25,11 @@ final wsClientProvider = Provider<HulyWebSocketClient?>((ref) {
 /// Providers can watch this to auto-refresh when data changes.
 final dataVersionProvider = StateProvider<int>((ref) => 0);
 
+/// Push notification service singleton.
+final pushServiceProvider = Provider<PushNotificationService>((ref) {
+  return PushNotificationService();
+});
+
 /// Starts listening for Tx events and bumps dataVersionProvider.
 /// Call this once from your root widget.
 void startRealtimeListener(dynamic ref) {
@@ -42,4 +48,21 @@ void startRealtimeListener(dynamic ref) {
   client.txStream.listen((_) {
     notifier.state++;
   });
+
+  // Register push notifications with workspace.
+  _initPush(ref);
+}
+
+void _initPush(dynamic ref) async {
+  if (ref is! WidgetRef) return;
+  try {
+    final push = ref.read(pushServiceProvider);
+    await push.initialize();
+    final restClient = ref.read(restClientProvider);
+    if (restClient != null) {
+      await push.registerWithWorkspace(restClient);
+    }
+  } catch (_) {
+    // Firebase not configured — push disabled.
+  }
 }
