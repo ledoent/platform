@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/api/realtime_provider.dart';
 import '../../core/models/activity.dart';
 import '../../core/models/attachment.dart';
 import '../../core/models/issue.dart';
@@ -62,8 +63,10 @@ final attachmentsProvider =
 });
 
 /// Fetches issues for a given project space ID.
+/// Auto-refreshes when WebSocket Tx events arrive.
 final issuesProvider =
     FutureProvider.family<List<Issue>, String>((ref, spaceId) async {
+  ref.watch(dataVersionProvider);
   final client = ref.watch(restClientProvider);
   if (client == null) return [];
   final results = await client.findAll(

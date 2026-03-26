@@ -8,6 +8,7 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/server_url_screen.dart';
 import 'features/auth/tfa_screen.dart';
 import 'features/auth/workspace_screen.dart';
+import 'core/api/realtime_provider.dart';
 import 'features/chat/channel_list_screen.dart';
 import 'features/chat/message_thread_screen.dart';
 import 'features/create_issue/create_issue_screen.dart';
@@ -108,12 +109,25 @@ final _routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class _MainShell extends StatelessWidget {
+class _MainShell extends ConsumerStatefulWidget {
   final Widget child;
   const _MainShell({required this.child});
 
   @override
+  ConsumerState<_MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<_MainShell> {
+  bool _realtimeStarted = false;
+
+  @override
   Widget build(BuildContext context) {
+    // Start WebSocket listener once.
+    if (!_realtimeStarted) {
+      _realtimeStarted = true;
+      startRealtimeListener(ref);
+    }
+
     final location = GoRouterState.of(context).uri.path;
     int index = 0;
     if (location.startsWith('/chat')) {
@@ -123,7 +137,7 @@ class _MainShell extends StatelessWidget {
     }
 
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBar(
         backgroundColor: HulyColors.header,
         indicatorColor: HulyColors.primaryButton.withValues(alpha: 0.2),

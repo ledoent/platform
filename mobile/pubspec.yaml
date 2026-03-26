@@ -22,6 +22,7 @@ dependencies:
   flutter_web_auth_2: ^4.0.0
   image_picker: ^1.0.0
   local_auth: ^2.1.0
+  web_socket_channel: ^3.0.0
 
 dev_dependencies:
   flutter_test:
