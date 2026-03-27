@@ -180,7 +180,7 @@ class HulyWebSocketClient {
     final delay = Duration(seconds: (_reconnectAttempts++).clamp(0, 5));
     _reconnectTimer = Timer(delay, () {
       if (!_disposed) {
-        connect().catchError((_) => _scheduleReconnect());
+        connect().then((_) {}).catchError((_) {});
       }
     });
   }

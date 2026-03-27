@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/auth_provider.dart';
 import '../../services/push_notification_service.dart';
@@ -15,7 +14,7 @@ final wsClientProvider = Provider<HulyWebSocketClient?>((ref) {
     token: ws.token,
   );
 
-  client.connect().catchError((_) {});
+  client.connect().then((_) {}).catchError((_) {});
   ref.onDispose(() => client.close());
 
   return client;

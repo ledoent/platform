@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/models/member.dart';
 import '../../core/models/tx.dart';
 import '../../core/theme/huly_theme.dart';
 import '../../core/utils/html.dart';

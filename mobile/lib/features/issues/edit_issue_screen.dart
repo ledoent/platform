@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/html.dart';
 import '../../core/models/issue.dart';
-import '../../core/models/issue_status.dart';
 import '../../core/models/tx.dart';
 import '../../core/theme/huly_theme.dart';
 import '../../core/widgets/huly_button.dart';
