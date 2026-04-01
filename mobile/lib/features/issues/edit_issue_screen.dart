@@ -32,10 +32,7 @@ class _EditIssueScreenState extends ConsumerState<EditIssueScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.issue.title);
-    final rawDesc = widget.issue.description
-            ?.replaceAll(RegExp(r'<[^>]*>'), '')
-            .trim() ??
-        '';
+    final rawDesc = stripHtml(widget.issue.description ?? '');
     _descController = TextEditingController(text: rawDesc);
     _priority = widget.issue.priority;
     _statusId = widget.issue.status;
