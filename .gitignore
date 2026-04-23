@@ -114,3 +114,8 @@ dev/tool/history.json
 .tmp
 ws-tests/docker-compose.override.yml
 .cursor/*
+
+# Local planning docs and working artifacts
+.ideas/
+screenshots/
+mobile/
