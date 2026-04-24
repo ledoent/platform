@@ -1,0 +1,158 @@
+name: ledoent gitaggregate (build/deploy)
+
+# Merges upstream release tag + ledoent feature branches into build/deploy.
+# On conflict, creates a GitHub issue so the operator knows a manual rebase is needed.
+# Reads the upstream tag from ledoent/upstream-tag.txt.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Weekly Monday 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: 'Upstream tag (e.g. v0.7.413). Defaults to ledoent/upstream-tag.txt'
+        required: false
+
+concurrency:
+  group: gitaggregate
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  aggregate:
+    name: Merge feature branches into build/deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ledoent
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Resolve upstream tag
+        id: config
+        run: |
+          if [ -n "${{ inputs.upstream_tag }}" ]; then
+            TAG="${{ inputs.upstream_tag }}"
+          else
+            TAG=$(cat ledoent/upstream-tag.txt | tr -d '[:space:]')
+          fi
+          echo "upstream_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using upstream tag: $TAG"
+
+      - name: Fetch upstream and fork branches
+        run: |
+          git remote add upstream https://github.com/hcengineering/platform.git || true
+          git fetch --all --tags --prune
+
+      - name: Build build/deploy
+        id: build
+        run: |
+          TAG="${{ steps.config.outputs.upstream_tag }}"
+          echo "Starting from: $TAG"
+
+          git checkout -B build/deploy "tags/$TAG"
+
+          FAILED_BRANCH=""
+          for BRANCH in feat/api-token-management feat/multi-search-backend ledoent; do
+            echo "--- Merging origin/$BRANCH"
+            if git merge --no-ff "origin/$BRANCH" -m "ledoent: merge '$BRANCH' into build/deploy"; then
+              echo "  ok"
+            else
+              FAILED_BRANCH="$BRANCH"
+              git merge --abort 2>/dev/null || true
+              break
+            fi
+          done
+
+          if [ -n "$FAILED_BRANCH" ]; then
+            echo "success=false" >> "$GITHUB_OUTPUT"
+            echo "failed_branch=$FAILED_BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            git push --force-with-lease origin build/deploy
+            echo "success=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue on failure
+        if: steps.build.outputs.success != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = '${{ steps.build.outputs.failed_branch }}';
+            const tag = '${{ steps.config.outputs.upstream_tag }}';
+            const body = [
+              '## Gitaggregation failed — manual rebase required',
+              '',
+              `**Branch with conflict:** \`${branch}\``,
+              `**Upstream tag:** \`${tag}\``,
+              '',
+              'The weekly gitaggregate run could not merge this feature branch cleanly onto the upstream tag.',
+              'This usually means upstream changed code that our branch also touched.',
+              '',
+              '**Steps to fix:**',
+              '```bash',
+              `cd ~/projects/ledoent/huly-platform`,
+              `git fetch fork upstream`,
+              `git checkout ${branch}`,
+              `git rebase tags/${tag}   # resolve any conflicts`,
+              `git push fork ${branch} --force-with-lease`,
+              '```',
+              '',
+              'Then re-run the workflow:',
+              '```bash',
+              `gh workflow run gitaggregate.yml --repo ledoent/platform`,
+              '```',
+            ].join('\n');
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'build-failure',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `Still failing as of ${new Date().toISOString()} — \`${branch}\` vs \`${tag}\``,
+              });
+              console.log('Commented on existing issue:', existing.data[0].html_url);
+            } else {
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[build/deploy] Merge conflict: ${branch} vs upstream ${tag}`,
+                body,
+                labels: ['build-failure'],
+                assignees: ['dnplkndll'],
+              });
+              console.log('Created issue:', issue.data.html_url);
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          TAG="${{ steps.config.outputs.upstream_tag }}"
+          {
+            echo "### Gitaggregate result"
+            echo ''
+            if [ "${{ steps.build.outputs.success }}" = "true" ]; then
+              echo "**Result:** success"
+              echo "**SHA:** \`${{ steps.build.outputs.sha }}\`"
+              echo "**Built from:** \`$TAG\` + feat/api-token-management + feat/multi-search-backend + ledoent"
+            else
+              echo "**Result:** failed"
+              echo "**Conflict in:** \`${{ steps.build.outputs.failed_branch }}\`"
+              echo "A GitHub issue has been created/updated. Manual rebase required."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
