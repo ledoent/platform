@@ -1,0 +1,42 @@
+name: Sync upstream develop
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 3 AM UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Add upstream and fetch
+        run: |
+          git remote add upstream https://github.com/hcengineering/platform.git
+          git fetch upstream develop
+
+      - name: Force-reset develop to upstream
+        run: |
+          UPSTREAM=$(git rev-parse upstream/develop)
+          LOCAL=$(git rev-parse HEAD)
+          if [ "$UPSTREAM" = "$LOCAL" ]; then
+            echo "Already in sync ($UPSTREAM)."
+          else
+            echo "Resetting develop: $LOCAL -> $UPSTREAM"
+            git reset --hard upstream/develop
+            git push --force-with-lease origin develop
+            echo "Synced."
+          fi
