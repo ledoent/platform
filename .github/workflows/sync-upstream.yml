@@ -28,14 +28,15 @@ jobs:
           git remote add upstream https://github.com/hcengineering/platform.git
           git fetch upstream develop
 
-      - name: Fast-forward develop from upstream
+      - name: Force-reset develop to upstream
         run: |
           UPSTREAM=$(git rev-parse upstream/develop)
           LOCAL=$(git rev-parse HEAD)
           if [ "$UPSTREAM" = "$LOCAL" ]; then
             echo "Already in sync ($UPSTREAM)."
           else
-            git merge --ff-only upstream/develop
-            git push origin develop
-            echo "Synced: $LOCAL → $UPSTREAM"
+            echo "Resetting develop: $LOCAL -> $UPSTREAM"
+            git reset --hard upstream/develop
+            git push --force-with-lease origin develop
+            echo "Synced."
           fi
