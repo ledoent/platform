@@ -46,16 +46,19 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
-      - name: Resolve upstream tag
+      - name: Resolve upstream ref
         id: config
         run: |
+          # upstream-tag.txt may hold a release tag (e.g. v0.7.423), a branch
+          # name (e.g. develop), or a commit SHA — anything `git checkout` can
+          # resolve once we've fetched upstream below.
           if [ -n "${{ inputs.upstream_tag }}" ]; then
-            TAG="${{ inputs.upstream_tag }}"
+            REF="${{ inputs.upstream_tag }}"
           else
-            TAG=$(cat ledoent/upstream-tag.txt | tr -d '[:space:]')
+            REF=$(cat ledoent/upstream-tag.txt | tr -d '[:space:]')
           fi
-          echo "upstream_tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "Using upstream tag: $TAG"
+          echo "upstream_ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "Using upstream ref: $REF"
 
       - name: Fetch upstream and fork branches
         run: |
@@ -65,10 +68,19 @@ jobs:
       - name: Build build/deploy
         id: build
         run: |
-          TAG="${{ steps.config.outputs.upstream_tag }}"
-          echo "Starting from: $TAG"
+          REF="${{ steps.config.outputs.upstream_ref }}"
+          echo "Starting from: $REF"
 
-          git checkout -B build/deploy "tags/$TAG"
+          # Resolve via upstream remote so tags, branches, and SHAs all work.
+          if git rev-parse -q --verify "refs/tags/$REF" >/dev/null 2>&1; then
+            BASE="refs/tags/$REF"
+          elif git rev-parse -q --verify "upstream/$REF" >/dev/null 2>&1; then
+            BASE="upstream/$REF"
+          else
+            BASE="$REF"
+          fi
+          echo "Resolved base: $BASE"
+          git checkout -B build/deploy "$BASE"
 
           FAILED_BRANCH=""
           for BRANCH in feat/api-token-management feat/multi-search-backend ledoent; do
@@ -98,7 +110,7 @@ jobs:
         with:
           script: |
             const branch = '${{ steps.build.outputs.failed_branch }}';
-            const tag = '${{ steps.config.outputs.upstream_tag }}';
+            const tag = '${{ steps.config.outputs.upstream_ref }}';
             const body = [
               '## Gitaggregation failed — manual rebase required',
               '',
@@ -157,7 +169,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          TAG="${{ steps.config.outputs.upstream_tag }}"
+          TAG="${{ steps.config.outputs.upstream_ref }}"
           {
             echo "### Gitaggregate result"
             echo ''
