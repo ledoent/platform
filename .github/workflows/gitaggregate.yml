@@ -30,7 +30,11 @@ jobs:
         with:
           ref: ledoent
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use a PAT so the build/deploy push triggers ledoent-build.yml.
+          # GITHUB_TOKEN pushes never fire downstream workflows. Falls back
+          # to GITHUB_TOKEN if BUILD_TRIGGER_PAT is unset so the merge still
+          # runs — just without the build chain.
+          token: ${{ secrets.BUILD_TRIGGER_PAT || secrets.GITHUB_TOKEN }}
 
       - name: Configure git
         run: |
