@@ -52,6 +52,13 @@ jobs:
       - name: Rush bundle
         run: node common/scripts/install-run-rush.js bundle -v
 
+      - name: Rush package
+        # Runs the `package` phase across the repo. Critical for `dev/prod`
+        # (webpack-builds the SPA into dev/prod/dist) and `pods/front`
+        # (copies dev/prod/dist → pods/front/dist for the Docker context).
+        # Without this the front Dockerfile's `COPY dist/ ./dist/` fails.
+        run: node common/scripts/install-run-rush.js package -v
+
       - name: Compute version tag
         id: version
         run: |
