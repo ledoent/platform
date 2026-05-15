@@ -58,7 +58,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             echo "tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           else
-            BASE=$(cat common/scripts/version.txt)
+            BASE=$(tr -d '"[:space:]' < common/scripts/version.txt)
             SHA=$(git rev-parse --short HEAD)
             echo "tag=v${BASE}-r${SHA}" >> "$GITHUB_OUTPUT"
           fi
