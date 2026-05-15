@@ -21,6 +21,8 @@ concurrency:
 env:
   ZOT_REGISTRY: registry.hz.ledoweb.com
   ZOT_IMAGE_PREFIX: registry.hz.ledoweb.com/huly
+  # Opt JS-based actions onto Node 24 ahead of the June 2026 forced bump.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   build:
