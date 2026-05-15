@@ -32,6 +32,12 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Need tags so common/scripts/show_tag.js can resolve `git describe`
+          # — without them VERSION falls back to "0.6.0" and shows up in the
+          # Help & Support UI label.
+          fetch-tags: true
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
