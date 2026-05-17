@@ -39,20 +39,23 @@ describe('utils - inferType', () => {
     expect(inferType([1, 2, 3])).toBe('::numeric[]')
   })
 
-  it('should handle empty arrays', () => {
-    // BUG: Empty arrays are treated as objects and return '::jsonb'
-    // Expected behavior would be to return '' or handle specially
-    expect(inferType([])).toBe('::jsonb')
+  it('should handle empty arrays as text arrays', () => {
+    // Empty arrays fall back to '::text[]' so `= ANY` stays valid on CockroachDB.
+    expect(inferType([])).toBe('::text[]')
   })
 
   it('should handle arrays with null first element', () => {
     expect(inferType([null, 'text'])).toBe('::text[]')
   })
 
-  it('should handle arrays with all null elements', () => {
-    // BUG: Arrays with only null elements return '::jsonb[]'
-    // Expected: Should probably return '' or handle as empty array
-    expect(inferType([null, null])).toBe('::jsonb[]')
+  it('should handle single-null arrays as text arrays', () => {
+    // [null] is what the github integration submits when a workspace has the
+    // App installed but no repositories enabled; must not infer ::jsonb.
+    expect(inferType([null])).toBe('::text[]')
+  })
+
+  it('should handle arrays with all null elements as text arrays', () => {
+    expect(inferType([null, null])).toBe('::text[]')
   })
 
   it('should infer Date type as text', () => {
