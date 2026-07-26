@@ -6,32 +6,39 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
-# GITHUB_TOKEN cannot `git push` commits that touch .github/workflows/**
-# (needs the unavailable `workflows` scope), so sync server-side instead:
-# merge-upstream fast-forwards; if upstream rewrote history, force-move the
-# ref to the upstream SHA (objects already exist in the fork network).
+# GITHUB_TOKEN cannot update .github/workflows/** in any form — git push,
+# merge-upstream, and even a refs-API force-move are all rejected (the
+# `workflows` scope does not exist for Actions tokens). Upstream regularly
+# touches its workflows (dependabot actions bumps), so sync must push with
+# a credential exempt from scope checks: a write deploy key.
+#
+# One-time setup (repo admin):
+#   ssh-keygen -t ed25519 -N '' -C sync-upstream -f sync_key
+#   gh repo deploy-key add sync_key.pub --allow-write --title sync-upstream --repo ledoent/platform
+#   gh secret set SYNC_SSH_KEY --repo ledoent/platform < sync_key && rm sync_key sync_key.pub
 jobs:
   sync:
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Sync develop from upstream
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          ssh-key: ${{ secrets.SYNC_SSH_KEY }}
+
+      - name: Force-reset develop to upstream
         run: |
           set -euo pipefail
-          UPSTREAM=$(gh api repos/hcengineering/platform/git/ref/heads/develop --jq .object.sha)
-          LOCAL=$(gh api repos/${{ github.repository }}/git/ref/heads/develop --jq .object.sha)
+          git remote add upstream https://github.com/hcengineering/platform.git
+          git fetch upstream develop
+          UPSTREAM=$(git rev-parse upstream/develop)
+          LOCAL=$(git rev-parse HEAD)
           if [ "$UPSTREAM" = "$LOCAL" ]; then
             echo "Already in sync ($UPSTREAM)."
-            exit 0
-          fi
-          echo "Syncing develop: $LOCAL -> $UPSTREAM"
-          if gh api -X POST repos/${{ github.repository }}/merge-upstream -f branch=develop; then
-            echo "Fast-forwarded via merge-upstream."
           else
-            echo "merge-upstream failed (non-FF?); force-updating ref."
-            gh api -X PATCH repos/${{ github.repository }}/git/refs/heads/develop \
-              -f sha="$UPSTREAM" -F force=true
+            echo "Resetting develop: $LOCAL -> $UPSTREAM"
+            git reset --hard upstream/develop
+            git push --force-with-lease origin develop
           fi
