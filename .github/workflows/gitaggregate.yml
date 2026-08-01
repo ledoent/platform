@@ -83,7 +83,12 @@ jobs:
           git checkout -B build/deploy "$BASE"
 
           FAILED_BRANCH=""
-          for BRANCH in feat/api-token-management feat/multi-search-backend ledoent; do
+          # fix/postgres-infertype-null-array is fork-only (PR #6, never sent
+          # upstream) and CockroachDB will not run without it — inferType([null])
+          # yields `= ANY(::jsonb)`, which crash-loops the github pod. It merges
+          # first because it is small and touches one file, so a conflict here
+          # is unambiguous. Drop it only once the fix lands upstream.
+          for BRANCH in fix/postgres-infertype-null-array feat/api-token-management feat/multi-search-backend ledoent; do
             echo "--- Merging origin/$BRANCH"
             if git merge --no-ff "origin/$BRANCH" -m "ledoent: merge '$BRANCH' into build/deploy"; then
               echo "  ok"
