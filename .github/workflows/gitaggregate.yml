@@ -1,8 +1,11 @@
 name: ledoent gitaggregate (build/deploy)
 
-# Merges upstream release tag + ledoent feature branches into build/deploy.
-# On conflict, creates a GitHub issue so the operator knows a manual rebase is needed.
-# Reads the upstream tag from ledoent/upstream-tag.txt.
+# Merges an upstream ref + ledoent feature branches into build/deploy.
+# Reads that ref from ledoent/upstream-tag.txt (a tag, branch, or commit SHA).
+#
+# On conflict the job FAILS. It also tries to open a GitHub issue, but issues are
+# disabled on ledoent/platform, so that step no-ops and the red run is the real
+# signal. Re-enable issues to get the assigned-issue notification back.
 
 on:
   schedule:
@@ -185,6 +188,21 @@ jobs:
             else
               echo "**Result:** failed"
               echo "**Conflict in:** \`${{ steps.build.outputs.failed_branch }}\`"
-              echo "A GitHub issue has been created/updated. Manual rebase required."
+              echo "Manual rebase required — see the \"Merge feature branches\" step for the commands."
+              echo ''
+              echo "_Issue filing is best-effort: \`ledoent/platform\` has issues disabled,"
+              echo "so the notify step no-ops. This run is marked failed instead._"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # The merge step deliberately captures conflicts into an output rather than
+      # letting `git merge` kill the job, so the notify and summary steps still
+      # run. That means nothing has failed the job yet — without this, a
+      # conflicted aggregation reports GREEN and the stale build/deploy is the
+      # only symptom. Issues are disabled on this repo, so a red run is the
+      # actual notification channel.
+      - name: Fail the job if aggregation conflicted
+        if: steps.build.outputs.success != 'true'
+        run: |
+          echo "::error::gitaggregate could not merge '${{ steps.build.outputs.failed_branch }}' onto '${{ steps.config.outputs.upstream_ref }}' — build/deploy was NOT updated."
+          exit 1
