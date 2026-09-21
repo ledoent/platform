@@ -255,10 +255,17 @@ export function inferType (val: any): string {
     return '::boolean'
   }
   if (Array.isArray(val)) {
-    const type = inferType(val[0] ?? val[1])
-    if (type !== '') {
-      return type + '[]'
+    const sample = val.find((v) => v !== null && v !== undefined)
+    if (sample !== undefined) {
+      const inner = inferType(sample)
+      if (inner !== '') {
+        return inner + '[]'
+      }
     }
+    // Empty arrays and all-null arrays: caller is almost always running
+    // $in on a Ref/string column. ::jsonb[] would be incompatible with
+    // CockroachDB's `= ANY`, so fall back to a real array type.
+    return '::text[]'
   }
   if (typeof val === 'object') {
     if (val instanceof Date) {
