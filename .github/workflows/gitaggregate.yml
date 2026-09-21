@@ -1,0 +1,208 @@
+name: ledoent gitaggregate (build/deploy)
+
+# Merges an upstream ref + ledoent feature branches into build/deploy.
+# Reads that ref from ledoent/upstream-tag.txt (a tag, branch, or commit SHA).
+#
+# On conflict the job FAILS. It also tries to open a GitHub issue, but issues are
+# disabled on ledoent/platform, so that step no-ops and the red run is the real
+# signal. Re-enable issues to get the assigned-issue notification back.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Weekly Monday 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: 'Upstream tag (e.g. v0.7.413). Defaults to ledoent/upstream-tag.txt'
+        required: false
+
+concurrency:
+  group: gitaggregate
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  issues: write
+
+# Opt JS-based actions (checkout, github-script, etc.) onto Node 24 ahead of
+# the June 2026 forced bump. Silences the Node 20 deprecation warning.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  aggregate:
+    name: Merge feature branches into build/deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ledoent
+          fetch-depth: 0
+          # Use a PAT so the build/deploy push triggers ledoent-build.yml.
+          # GITHUB_TOKEN pushes never fire downstream workflows. Falls back
+          # to GITHUB_TOKEN if BUILD_TRIGGER_PAT is unset so the merge still
+          # runs — just without the build chain.
+          token: ${{ secrets.BUILD_TRIGGER_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Resolve upstream ref
+        id: config
+        run: |
+          # upstream-tag.txt may hold a release tag (e.g. v0.7.423), a branch
+          # name (e.g. develop), or a commit SHA — anything `git checkout` can
+          # resolve once we've fetched upstream below.
+          if [ -n "${{ inputs.upstream_tag }}" ]; then
+            REF="${{ inputs.upstream_tag }}"
+          else
+            REF=$(cat ledoent/upstream-tag.txt | tr -d '[:space:]')
+          fi
+          echo "upstream_ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "Using upstream ref: $REF"
+
+      - name: Fetch upstream and fork branches
+        run: |
+          git remote add upstream https://github.com/hcengineering/platform.git || true
+          git fetch --all --tags --prune
+
+      - name: Build build/deploy
+        id: build
+        run: |
+          REF="${{ steps.config.outputs.upstream_ref }}"
+          echo "Starting from: $REF"
+
+          # Resolve via upstream remote so tags, branches, and SHAs all work.
+          if git rev-parse -q --verify "refs/tags/$REF" >/dev/null 2>&1; then
+            BASE="refs/tags/$REF"
+          elif git rev-parse -q --verify "upstream/$REF" >/dev/null 2>&1; then
+            BASE="upstream/$REF"
+          else
+            BASE="$REF"
+          fi
+          echo "Resolved base: $BASE"
+          git checkout -B build/deploy "$BASE"
+
+          FAILED_BRANCH=""
+          # fix/postgres-infertype-null-array is fork-only (PR #6, never sent
+          # upstream) and CockroachDB will not run without it — inferType([null])
+          # yields `= ANY(::jsonb)`, which crash-loops the github pod. It merges
+          # first because it is small and touches one file, so a conflict here
+          # is unambiguous. Drop it only once the fix lands upstream.
+          for BRANCH in fix/postgres-infertype-null-array feat/api-token-management feat/multi-search-backend ledoent; do
+            echo "--- Merging origin/$BRANCH"
+            if git merge --no-ff "origin/$BRANCH" -m "ledoent: merge '$BRANCH' into build/deploy"; then
+              echo "  ok"
+            else
+              FAILED_BRANCH="$BRANCH"
+              git merge --abort 2>/dev/null || true
+              break
+            fi
+          done
+
+          if [ -n "$FAILED_BRANCH" ]; then
+            echo "success=false" >> "$GITHUB_OUTPUT"
+            echo "failed_branch=$FAILED_BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            git push --force-with-lease origin build/deploy
+            echo "success=true" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notify on failure
+        if: steps.build.outputs.success != 'true'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = '${{ steps.build.outputs.failed_branch }}';
+            const tag = '${{ steps.config.outputs.upstream_ref }}';
+            const body = [
+              '## Gitaggregation failed — manual rebase required',
+              '',
+              `**Branch with conflict:** \`${branch}\``,
+              `**Upstream tag:** \`${tag}\``,
+              '',
+              'The weekly gitaggregate run could not merge this feature branch cleanly onto the upstream tag.',
+              'This usually means upstream changed code that our branch also touched.',
+              '',
+              '**Steps to fix:**',
+              '```bash',
+              `cd ~/projects/ledoent/huly-platform`,
+              `git fetch fork upstream`,
+              `git checkout ${branch}`,
+              `git rebase tags/${tag}   # resolve any conflicts`,
+              `git push fork ${branch} --force-with-lease`,
+              '```',
+              '',
+              'Then re-run the workflow:',
+              '```bash',
+              `gh workflow run gitaggregate.yml --repo ledoent/platform`,
+              '```',
+            ].join('\n');
+
+            try {
+              const existing = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: 'build-failure',
+              });
+              if (existing.data.length > 0) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.data[0].number,
+                  body: `Still failing as of ${new Date().toISOString()} — \`${branch}\` vs \`${tag}\``,
+                });
+                console.log('Commented on existing issue:', existing.data[0].html_url);
+              } else {
+                const issue = await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `[build/deploy] Merge conflict: ${branch} vs upstream ${tag}`,
+                  body,
+                  labels: ['build-failure'],
+                  assignees: ['dnplkndll'],
+                });
+                console.log('Created issue:', issue.data.html_url);
+              }
+            } catch (err) {
+              core.warning(`Could not file/comment on build-failure issue (issues may be disabled): ${err.message}`);
+              core.warning(body);
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          TAG="${{ steps.config.outputs.upstream_ref }}"
+          {
+            echo "### Gitaggregate result"
+            echo ''
+            if [ "${{ steps.build.outputs.success }}" = "true" ]; then
+              echo "**Result:** success"
+              echo "**SHA:** \`${{ steps.build.outputs.sha }}\`"
+              echo "**Built from:** \`$TAG\` + feat/api-token-management + feat/multi-search-backend + ledoent"
+            else
+              echo "**Result:** failed"
+              echo "**Conflict in:** \`${{ steps.build.outputs.failed_branch }}\`"
+              echo "Manual rebase required — see the \"Merge feature branches\" step for the commands."
+              echo ''
+              echo "_Issue filing is best-effort: \`ledoent/platform\` has issues disabled,"
+              echo "so the notify step no-ops. This run is marked failed instead._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The merge step deliberately captures conflicts into an output rather than
+      # letting `git merge` kill the job, so the notify and summary steps still
+      # run. That means nothing has failed the job yet — without this, a
+      # conflicted aggregation reports GREEN and the stale build/deploy is the
+      # only symptom. Issues are disabled on this repo, so a red run is the
+      # actual notification channel.
+      - name: Fail the job if aggregation conflicted
+        if: steps.build.outputs.success != 'true'
+        run: |
+          echo "::error::gitaggregate could not merge '${{ steps.build.outputs.failed_branch }}' onto '${{ steps.config.outputs.upstream_ref }}' — build/deploy was NOT updated."
+          exit 1

@@ -13,19 +13,39 @@
 // limitations under the License.
 //
 
+const fs = require('fs')
+const path = require('path')
 const exec = require('child_process').exec
 
-exec('git describe --tags --abbrev=0', (err, stdout, stderr) => {
-  if (err !== null) {
-    console.log('"0.6.0"')
+function emit (raw) {
+  const parts = raw.replace(/^v/, '').replace(/^s/, '').split('.')
+  if (parts.length === 3) {
+    console.log(`"${parseInt(parts[0])}.${parseInt(parts[1])}.${parseInt(parts[2])}"`)
+    return true
   }
-  const rawVersion = stdout.trim().replace('v', '').replace('s', '').split('.')
-  if (rawVersion.length === 3) {
-    const version = {
-      major: parseInt(rawVersion[0]),
-      minor: parseInt(rawVersion[1]),
-      patch: parseInt(rawVersion[2])
+  return false
+}
+
+function main () {
+  // Prefer common/scripts/version.txt — git describe fails when HEAD has no
+  // reachable tag (e.g. building from a develop SHA), and the hardcoded
+  // "0.6.0" fallback then leaks into the UI. version.txt is upstream's
+  // source of truth for the in-development version.
+  try {
+    const raw = fs.readFileSync(path.resolve(__dirname, 'version.txt'), 'utf8')
+      .trim().replace(/^"/, '').replace(/"$/, '')
+    if (raw && emit(raw)) return
+  } catch (_) {
+    // version.txt missing — fall back to git describe
+  }
+
+  exec('git describe --tags --abbrev=0', (err, stdout) => {
+    if (err !== null) {
+      console.log('"0.6.0"')
+      return
     }
-    console.log(`"${version.major}.${version.minor}.${version.patch}"`)
-  }
-})
+    emit(stdout.trim())
+  })
+}
+
+main()
