@@ -32,6 +32,7 @@ export interface AuthState {
   branding?: string
   autoJoin?: boolean
   navigateUrl?: string
+  mobileRedirect?: string
 }
 
 export function safeParseAuthState (rawState: string | undefined): AuthState {
@@ -53,7 +54,8 @@ export function encodeState (ctx: any, brandings: BrandingMap): string {
     inviteId: ctx.query?.inviteId,
     branding,
     autoJoin: ctx.query?.autoJoin !== undefined,
-    navigateUrl: ctx.query?.navigateUrl
+    navigateUrl: ctx.query?.navigateUrl,
+    mobileRedirect: ctx.query?.mobileRedirect
   }
 
   return encodeURIComponent(JSON.stringify(state))
@@ -110,9 +112,15 @@ export async function handleProviderAuth (
         type: providerType,
         user
       })
+      if (state.mobileRedirect != null) {
+        return `${state.mobileRedirect}://login/auth?error=no_account`
+      }
       return concatLink(branding?.front ?? frontUrl, '/login')
     } else {
-      const origin = concatLink(branding?.front ?? frontUrl, '/login/auth')
+      const baseUrl = state.mobileRedirect != null
+        ? `${state.mobileRedirect}://login/auth`
+        : concatLink(branding?.front ?? frontUrl, '/login/auth')
+      const origin = baseUrl
       const queryObj: any = { token: loginInfo.token }
       if (state.autoJoin === true) {
         queryObj.autoJoin = state.autoJoin
